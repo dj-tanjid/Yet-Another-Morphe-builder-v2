@@ -53,7 +53,7 @@ def _build(target_app: str | None = None, arch_override: str | None = None) -> i
 
     return 0 if success else 1
 
-def _clean() -> int:
+def _clear() -> int:
     for directory in (TEMP_DIR, BUILD_DIR):
         if directory.exists():
             shutil.rmtree(directory)
@@ -88,8 +88,8 @@ def main() -> None:
             case ["get-matrix", *source]:
                 _require_ci("get-matrix")
                 get_matrix(source[0] if source else "morphe")
-            case ["clean"]:
-                sys.exit(_clean())
+            case ["clear"]:
+                sys.exit(_clear())
             case ["combine-logs", *dir]:
                 _require_ci("combine-logs")
                 combine_logs(logs_dir=Path(dir[0] if dir else "logs"))
@@ -100,7 +100,7 @@ def main() -> None:
                 sys.exit(1)
             case _:
                 epr(f"Unknown command: {' '.join(argv)}")
-                epr("Usage: main.py [target] [arch] | clean")
+                epr("Usage: main.py [target] [arch] | clear")
                 sys.exit(1)
     except BuildAbortError:
         sys.exit(1)

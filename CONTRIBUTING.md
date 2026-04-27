@@ -13,10 +13,11 @@ Here you will find a step-by-step technical guide on how to set up your environm
 
 1. 📋 **Requirements**:
 
+- [Git](https://git-scm.com/downloads)
 - [Python](https://www.python.org/downloads/) (3.13+)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [Java](https://adoptium.net/temurin/releases?version=25&os=any&arch=any) (JDK 25+)
-> For Termux users, just use: `pkg install python uv openjdk-25`
+> For Termux users, just use: `pkg install git python uv openjdk-25`
 
 2. 📥 **Installation**:
 
@@ -33,7 +34,7 @@ No further setup needed - `uv` handles the Python environment and dependencies a
 uv run main.py                    # build all apps
 uv run main.py SomeApp            # build a specific app
 uv run main.py SomeApp arm64-v8a  # build with arch override
-uv run main.py clean              # remove build/, temp/ and build.md
+uv run main.py clear              # remove build/, temp/ and build.md
 ```
 
 Output APKs are saved to `build/`.

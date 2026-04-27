@@ -53,7 +53,8 @@ def fetch_prebuilts(cli_src: str, cli_ver: str, patches_src: str, patches_ver: s
     return Prebuilts(cli_jar=cli_jar, patches_mpp=patches_mpp)
 
 def _fetch_single_asset(src: str, tag: str, ver: str, fprefix: str, ext: str, cl_dir: Path, net: NetworkManager) -> Path:
-    dir_path = TEMP_DIR / src.split("/")[0].lower()
+    org = src.split("/")[0]
+    dir_path = TEMP_DIR / org.lower()
     dir_path.mkdir(parents=True, exist_ok=True)
 
     base_url = f"https://api.github.com/repos/{src}/releases"
@@ -87,7 +88,6 @@ def _fetch_single_asset(src: str, tag: str, ver: str, fprefix: str, ext: str, cl
         asset = matches[0]
         file = dir_path / asset["name"]
         net.gh_download(asset["url"], file)
-        org = src.split("/")[0]
         changelog = f"> ⚙️ » {tag}: `{org}/{asset['name']}`  \n"
     else:
         tag_name = _tag_from_filename(file)
