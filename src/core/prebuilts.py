@@ -1,5 +1,6 @@
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,7 +36,9 @@ def fetch_prebuilts(cli_src: str, cli_ver: str, patches_src: str, patches_ver: s
         (cli_src, "CLI", cli_ver, "cli", "jar"),
         (patches_src, "Patches", patches_ver, "patches", "mpp"),
     ]
-    cli_jar, patches_mpp = (_fetch_single_asset(*spec, cl_dir=cl_dir, net=net) for spec in specs)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(_fetch_single_asset, *spec, cl_dir=cl_dir, net=net) for spec in specs]
+        cli_jar, patches_mpp = (f.result() for f in futures)
     return Prebuilts(cli_jar=cli_jar, patches_mpp=patches_mpp)
 
 def _fetch_single_asset(src: str, tag: str, ver: str, fprefix: str, ext: str, cl_dir: Path, net: NetworkManager) -> Path:
