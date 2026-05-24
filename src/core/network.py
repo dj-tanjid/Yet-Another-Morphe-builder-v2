@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 import time
 from pathlib import Path
@@ -8,6 +9,8 @@ from curl_cffi import requests
 from curl_cffi.requests import exceptions as req_exc
 
 from src.core.logger import epr
+
+_RETRY_DELAYS = (2, 4, 8)
 
 
 class NetworkError(Exception):
@@ -20,6 +23,18 @@ def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
     with mu:
         return locks.setdefault(key, threading.Lock())
 
+def _handle_status(resp, url: str, attempt: int) -> bool:
+    if resp.status_code == 404:
+        raise ResourceNotFoundError(f"Not found (404): {url}")
+
+    if resp.status_code == 403 or resp.status_code >= 500:
+        epr(f"HTTP {resp.status_code} for {url}, attempt {attempt}/3")
+        return True
+
+    if resp.status_code >= 400:
+        resp.raise_for_status()
+    return False
+
 class NetworkManager:
     def __init__(self) -> None:
         self.session = requests.Session(impersonate="firefox147")
@@ -31,21 +46,27 @@ class NetworkManager:
         self._dest_mu = threading.Lock()
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
-        try:
-            with _get_lock(self._domain_locks, self._domain_mu, urlparse(url).netloc):
-                time.sleep(0.5)
-                resp = self.session.get(url, timeout=(5, 10), allow_redirects=True, headers=headers, verify=True)
+        last_exc: Exception | None = None
+        for attempt, delay in enumerate((*_RETRY_DELAYS, None), start=1):
+            try:
+                with _get_lock(self._domain_locks, self._domain_mu, urlparse(url).netloc):
+                    time.sleep(0.5)
+                    resp = self.session.get(url, timeout=(5, 10), allow_redirects=True, headers=headers, verify=True)
 
-            if resp.status_code == 404:
-                raise ResourceNotFoundError(f"Not found (404): {url}")
+                if _handle_status(resp, url, attempt):
+                    if delay:
+                        time.sleep(delay + random.uniform(0, 1))
+                    continue
 
-            if resp.status_code >= 400:
-                epr(f"HTTP {resp.status_code} for {url}")
-                resp.raise_for_status()
+                return resp.text
 
-            return resp.text
-        except req_exc.RequestException:
-            raise NetworkError(f"Request failed: {url}") from None
+            except req_exc.RequestException as exc:
+                last_exc = exc
+                epr(f"Request error for {url}, attempt {attempt}/3: {exc}")
+                if delay:
+                    time.sleep(delay + random.uniform(0, 1))
+
+        raise NetworkError(f"Request failed after 3 attempts: {url}") from last_exc
 
     def gh_get(self, url: str) -> str:
         return self.get(url, headers=self._gh_headers)
@@ -61,20 +82,33 @@ class NetworkManager:
             dest.parent.mkdir(parents=True, exist_ok=True)
             tmp = dest.with_name(f"tmp.{dest.name}")
             tmp.unlink(missing_ok=True)
-            try:
-                with _get_lock(self._domain_locks, self._domain_mu, urlparse(url).netloc):
-                    time.sleep(0.5)
-                    resp = self.session.get(url, timeout=(5, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
-                    resp.raise_for_status()
+            last_exc: Exception | None = None
+            for attempt, delay in enumerate((*_RETRY_DELAYS, None), start=1):
+                try:
+                    with _get_lock(self._domain_locks, self._domain_mu, urlparse(url).netloc):
+                        time.sleep(0.5)
+                        resp = self.session.get(url, timeout=(5, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
-                with tmp.open("wb") as fh:
-                    for chunk in resp.iter_content(chunk_size=1048576):
-                        fh.write(chunk)
-                tmp.replace(dest)
-            except req_exc.RequestException:
-                raise NetworkError(f"Download failed: {url}") from None
-            finally:
-                tmp.unlink(missing_ok=True)
+                    if _handle_status(resp, url, attempt):
+                        if delay:
+                            time.sleep(delay + random.uniform(0, 1))
+                        continue
+
+                    with tmp.open("wb") as fh:
+                        for chunk in resp.iter_content(chunk_size=1048576):
+                            fh.write(chunk)
+                    tmp.replace(dest)
+                    return
+
+                except req_exc.RequestException as exc:
+                    last_exc = exc
+                    epr(f"Download error for {url}, attempt {attempt}/3: {exc}")
+                    if delay:
+                        time.sleep(delay + random.uniform(0, 1))
+                finally:
+                    tmp.unlink(missing_ok=True)
+
+            raise NetworkError(f"Download failed after 3 attempts: {url}") from last_exc
 
     def gh_download(self, url: str, dest: Path) -> None:
         self.download(url, dest, headers=self._gh_headers | {"Accept": "application/octet-stream"})
