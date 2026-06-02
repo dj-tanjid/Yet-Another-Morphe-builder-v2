@@ -10,7 +10,7 @@ from curl_cffi.requests import exceptions as req_exc
 
 from src.core.logger import epr
 
-_RETRY_DELAYS = (2, 4, 8)
+_RETRY_DELAYS = (2, 4)
 
 
 class NetworkError(Exception):
@@ -47,26 +47,26 @@ class NetworkManager:
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         last_exc: Exception | None = None
-        for attempt, delay in enumerate((*_RETRY_DELAYS, None), start=1):
+        for attempt in range(1, len(_RETRY_DELAYS) + 2):
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, urlparse(url).netloc):
                     time.sleep(0.5)
                     resp = self.session.get(url, timeout=(5, 10), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
-                    if delay:
-                        time.sleep(delay + random.uniform(0, 1))
+                    if attempt <= len(_RETRY_DELAYS):
+                        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0, 1))
                     continue
 
                 return resp.text
 
             except req_exc.RequestException as exc:
                 last_exc = exc
-                epr(f"Request error for {url}, attempt {attempt}/3: {exc}")
-                if delay:
-                    time.sleep(delay + random.uniform(0, 1))
+                epr(f"Request error for {url}, attempt {attempt}/{len(_RETRY_DELAYS) + 1}: {exc}")
+                if attempt <= len(_RETRY_DELAYS):
+                    time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0, 1))
 
-        raise NetworkError(f"Request failed after 3 attempts: {url}") from last_exc
+        raise NetworkError(f"Request failed after {len(_RETRY_DELAYS) + 1} attempts: {url}") from last_exc
 
     def gh_get(self, url: str) -> str:
         return self.get(url, headers=self._gh_headers)
@@ -83,15 +83,15 @@ class NetworkManager:
             tmp = dest.with_name(f"tmp.{dest.name}")
             tmp.unlink(missing_ok=True)
             last_exc: Exception | None = None
-            for attempt, delay in enumerate((*_RETRY_DELAYS, None), start=1):
+            for attempt in range(1, len(_RETRY_DELAYS) + 2):
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, urlparse(url).netloc):
                         time.sleep(0.5)
                         resp = self.session.get(url, timeout=(5, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
-                        if delay:
-                            time.sleep(delay + random.uniform(0, 1))
+                        if attempt <= len(_RETRY_DELAYS):
+                            time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0, 1))
                         continue
 
                     with tmp.open("wb") as fh:
@@ -102,13 +102,13 @@ class NetworkManager:
 
                 except req_exc.RequestException as exc:
                     last_exc = exc
-                    epr(f"Download error for {url}, attempt {attempt}/3: {exc}")
-                    if delay:
-                        time.sleep(delay + random.uniform(0, 1))
+                    epr(f"Download error for {url}, attempt {attempt}/{len(_RETRY_DELAYS) + 1}: {exc}")
+                    if attempt <= len(_RETRY_DELAYS):
+                        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0, 1))
                 finally:
                     tmp.unlink(missing_ok=True)
 
-            raise NetworkError(f"Download failed after 3 attempts: {url}") from last_exc
+            raise NetworkError(f"Download failed after {len(_RETRY_DELAYS) + 1} attempts: {url}") from last_exc
 
     def gh_download(self, url: str, dest: Path) -> None:
         self.download(url, dest, headers=self._gh_headers | {"Accept": "application/octet-stream"})
