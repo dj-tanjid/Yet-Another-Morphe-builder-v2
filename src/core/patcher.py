@@ -111,6 +111,8 @@ class PatcherCLI:
                     wpr(f"You can't include '{p}' patch as that's done by builder automatically")
                 else:
                     p_args.extend(("-e", p))
+            for p in spec["exclude"]:
+                p_args.extend(("-d", p))
         if exclusive:
             p_args.append("--exclusive")
 

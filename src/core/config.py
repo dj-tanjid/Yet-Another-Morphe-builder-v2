@@ -77,9 +77,9 @@ def parse_app_entries(data: dict[str, object], main: Config) -> list[AppEntry]:
         patches: dict[str, dict] = {}
         for k, v in raw_patches.items():
             if isinstance(v, list):
-                patches[str(k)] = {"version": "latest", "include": [str(p) for p in v]}
+                patches[str(k)] = {"version": "latest", "include": [str(p) for p in v], "exclude": []}
             elif isinstance(v, dict):
-                patches[str(k)] = {"version": str(v.get("version", "latest")), "include": [str(p) for p in v.get("include", [])]}
+                patches[str(k)] = {"version": str(v.get("version", "latest")), "include": [str(p) for p in v.get("include", [])], "exclude": [str(p) for p in v.get("exclude", [])]}
 
         raw_keywords = t.get("changelog-keywords")
         if raw_keywords is not None and not isinstance(raw_keywords, list):

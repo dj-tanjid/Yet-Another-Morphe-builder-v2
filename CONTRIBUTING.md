@@ -84,6 +84,7 @@ apkmirror-dlurl = "https://www.apkmirror.com/apk/inc/app"
 | key | Patch source (`github:owner/repo` or `gitlab:owner/repo`) | - |
 | `version` | Version to fetch (`latest`, `dev`, or a specific tag) | `latest` |
 | `include` | List of patch names to apply from this source. Empty list applies all patches | `[]` |
+| `exclude` | List of patch names to explicitly disable from this source | `[]` |
 
 Each patch source is fetched exactly once and reused across all apps that reference the same `(source, version)` pair.
 
