@@ -1,10 +1,25 @@
 strict-sigcheck = false
 
-[X-Twitter]
-brand = "piko"
+[Twitter-Piko]
+app-name = "Twitter"
+brand = "Piko"
+version = "12.0.1-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+skip-sigcheck = true
 
-[X-Twitter.patches]
+[Twitter-Piko.patches]
 "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"]
+"gitlab:inotia00/piko-shim" = []
+
+[X-Piko]
+app-name = "X"
+brand = "Piko"
+version = "12.0.1-release.0"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
+uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+skip-sigcheck = true
+
+[X-Piko.patches]
+"github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
 "gitlab:inotia00/piko-shim" = []
