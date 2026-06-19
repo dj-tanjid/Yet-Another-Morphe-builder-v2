@@ -26,6 +26,7 @@ uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 version = "21.24.360"
+patcher-args = "-e 'Change header' -Ocustom=icons/YouTube/header -e 'Custom branding' -OcustomIcon=icons/YouTube/branding -OcustomName='YouTube Morphe'"
 
 [YouTube-Experimental.patches]
 "github:MorpheApp/morphe-patches" = []
@@ -35,6 +36,7 @@ apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 arch = "both"
 version = "9.22.53"
+patcher-args = "-e 'Change header' -Ocustom=icons/Music/header -e 'Custom branding' -OcustomIcon=icons/Music/branding -OcustomName='Music Morphe'"
 
 [YT-Music-Experimental.patches]
 "github:MorpheApp/morphe-patches" = []
@@ -43,6 +45,7 @@ version = "9.22.53"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/redditinc/reddit"
 uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
 version = "2026.23.0"
+patcher-args = "-e 'Custom branding name for Reddit' -OappName='Reddit Morphe'"
 
 [Reddit-Experimental.patches]
 "github:MorpheApp/morphe-patches" = []
@@ -54,7 +57,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 
 [X-Twitter.patches]
 "github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
-"gitlab:inotia00/piko-shim" = []
+"gitlab:inotia00/x-shim" = []
 
 [Instagram]
 brand = "piko"
@@ -613,6 +616,7 @@ changelog-keywords = ["VN"]
 "gitlab:Paresh-Maheshwari/paresh-patches" = []
 
 [YouTube-Anddea]
+app-name = "youtube"
 brand = "anddea"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
@@ -621,6 +625,7 @@ uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 "github:anddea/revanced-patches" = { exclude = ["Visual preferences icons for YouTube"] }
 
 [YT-Music-Anddea]
+app-name = "yt-music"
 brand = "anddea"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
