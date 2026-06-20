@@ -23,3 +23,23 @@ skip-sigcheck = true
 [X-Piko.patches]
 "github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
 "gitlab:inotia00/x-shim" = []
+
+[Instagram]
+brand = "piko"
+github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
+# apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
+# uptodown-dlurl = "https://instagram.en.uptodown.com/android"
+arch = "arm64-v8a"
+
+[Instagram.patches]
+"github:crimera/piko" = []
+
+[Messenger]
+brand = "de-vanced"
+github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
+# apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger/"
+# uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+arch = "both"
+
+[Messenger.patches]
+"github:RookieEnough/De-Vanced" = []
