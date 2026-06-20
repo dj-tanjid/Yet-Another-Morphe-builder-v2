@@ -27,10 +27,10 @@ skip-sigcheck = true
 [Instagram]
 app-name = "Instagram"
 brand = "Piko"
-version = ""
+version = "430.0.0.53.80"
 github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
-# apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
-# uptodown-dlurl = "https://instagram.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
+uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 arch = "arm64-v8a"
 
 [Instagram.patches]
@@ -39,23 +39,23 @@ arch = "arm64-v8a"
 [Facebook]
 app-name = "Facebook"
 brand = "De-Vanced"
-version = ""
+version = "566.0.0.48.73"
 github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-2/facebook/"
 uptodown-durl = "https://facebook.en.uptodown.com/android"
-arch = "both"
+arch = "arm64-v8a"
 
 [Facebook.patches]
 "github:RookieEnough/De-Vanced" = []
 
 [Messenger]
-app-name = "Messenger"
+app-name = "Facebook Messenger"
 brand = "De-Vanced"
-version = ""
+version = "566.0.0.57.86"
 github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
-# apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger/"
-# uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
-arch = "both"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger/"
+uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+arch = "arm64-v8a"
 
 [Messenger.patches]
 "github:RookieEnough/De-Vanced" = []
