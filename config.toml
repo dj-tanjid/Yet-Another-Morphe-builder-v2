@@ -6,7 +6,7 @@ brand = "Piko"
 version = "12.1.1-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
-skip-sigcheck = true
+# skip-sigcheck = true
 
 [Twitter-Piko.patches]
 "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"]
@@ -18,7 +18,7 @@ brand = "Piko"
 version = "12.1.1-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
-skip-sigcheck = true
+# skip-sigcheck = true
 
 [X-Piko.patches]
 "github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
