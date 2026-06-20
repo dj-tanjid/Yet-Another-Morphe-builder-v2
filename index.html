@@ -1,4 +1,4 @@
-<!-- Copyright (c) 2026 Builder for Morphe -->
+<!-- Copyright (c) 2026 Builder for Morphe (github.com/builder-for-morphe)-->
 
 <!doctype html>
 <html lang="en">
@@ -8,31 +8,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Builder for Morphe Website</title>
   <meta name="description" content="📦 Pre-built APKs from various patch sources." />
-  <meta name="google-site-verification" content="_Q1zY3uDEtobQ_VJNHDVROWqNBAAPMcnwy9b-0zLpDs" />
   <link rel="canonical" href="https://builder-for-morphe.github.io/" />
-  <link rel="icon" type="image/svg+xml" href="https://github.githubassets.com/favicons/favicon.svg" />
-  <meta property="og:url" content="https://builder-for-morphe.github.io/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://github.githubassets.com/favicons/favicon.svg" />
-  <meta name="twitter:card" content="summary" />
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Builder for Morphe",
-    "operatingSystem": "Android",
-    "applicationCategory": "UtilitiesApplication",
-    "description": "Pre-built APKs from various patch sources.",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    }
-  }
-  </script>
-  <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown.min.css" />
+  <link rel="icon" type="image/svg+xml" href="https://raw.githubusercontent.com/nvbangg/awesome-for-morphe/refs/heads/gh-pages/src/favicon.svg" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown.min.css" />
+  
   <style>
     body {
       margin: 0;
@@ -61,6 +40,27 @@
       }
     }
   </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Builder for Morphe",
+    "operatingSystem": "Android",
+    "applicationCategory": "UtilitiesApplication",
+    "description": "Pre-built APKs from various patch sources.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZG14HMBLBY"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-ZG14HMBLBY');</script>
+
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
@@ -68,6 +68,15 @@
   <div id="content" class="markdown-body">Loading content...</div>
 
   <script>
+    marked.use({
+      renderer: {
+        heading({ tokens, depth, text }) {
+          const slug = text.replace(/<[^>]+>/g, "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, "").replace(/ /g, "-");
+          return `<h${depth} id="${slug}"><a class="anchor" aria-hidden="true" href="#${slug}"><svg class="octicon octicon-link" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a2.002 2.002 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a2.002 2.002 0 0 0 0 2.83Z"></path></svg></a>${this.parser.parseInline(tokens)}</h${depth}>`;
+        }
+      }
+    });
+
     fetch("README.md")
       .then((response) => {
         if (!response.ok) {
