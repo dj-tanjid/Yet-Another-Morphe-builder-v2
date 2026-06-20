@@ -10,7 +10,7 @@ skip-sigcheck = true
 
 [Twitter-Piko.patches]
 "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"]
-"gitlab:inotia00/piko-shim" = []
+"gitlab:inotia00/x-shim" = []
 
 [X-Piko]
 app-name = "X"
@@ -22,4 +22,4 @@ skip-sigcheck = true
 
 [X-Piko.patches]
 "github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
-"gitlab:inotia00/piko-shim" = []
+"gitlab:inotia00/x-shim" = []
