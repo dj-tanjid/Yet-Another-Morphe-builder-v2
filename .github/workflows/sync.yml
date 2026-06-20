@@ -72,7 +72,7 @@ jobs:
               git commit -m "Merge remote-tracking branch 'upstream/main'"
 
               if ! git push --force -u origin sync-upstream; then
-                echo "::warning title=Sync Upstream Failed::PAT_TOKEN with workflow and write permissions is required"
+                echo "::warning title=Sync Upstream Failed::PAT_TOKEN is required for workflow updates"
                 exit 0
               fi
 
@@ -90,5 +90,8 @@ jobs:
             git add config.toml
             git commit -m "Merge remote-tracking branch 'upstream/main'"
           fi
-          git push
+          if ! git push; then
+            echo "::warning title=Sync Upstream Failed::PAT_TOKEN is required for workflow updates"
+            exit 0
+          fi
           echo "::notice title=Sync upstream::New commits were found and synced."
