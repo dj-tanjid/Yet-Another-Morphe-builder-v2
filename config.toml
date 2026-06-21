@@ -4,13 +4,13 @@ strict-sigcheck = false
 app-name = "Twitter"
 brand = "Piko"
 version = "12.1.1-release.0"
-patches-version = "dev"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
 
 [Twitter-Piko.patches]
-"github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"]
+# "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] #Fetch Latest Patch
+"github:crimera/piko" = { version = "dev", include = ["Bring back twitter", "Browse tweet object", "Dynamic color"] }
 "gitlab:inotia00/x-shim" = []
 
 [X-Piko]
@@ -23,7 +23,8 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
 
 [X-Piko.patches]
-"github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
+# "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] #Fetch Latest Patch
+"github:crimera/piko" = { version = "dev", include = ["Bring back twitter", "Browse tweet object", "Dynamic color"] }
 "gitlab:inotia00/x-shim" = []
 
 [Instagram]
@@ -38,7 +39,8 @@ uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 arch = "arm64-v8a"
 
 [Instagram.patches]
-"github:crimera/piko" = []
+# "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] #Fetch Latest Patch
+"github:crimera/piko" = { version = "dev", include = ["Bring back twitter", "Browse tweet object", "Dynamic color"] }
 
 [Facebook]
 app-name = "Facebook"
