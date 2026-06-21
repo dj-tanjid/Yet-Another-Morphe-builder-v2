@@ -4,6 +4,7 @@ strict-sigcheck = false
 app-name = "Twitter"
 brand = "Piko"
 version = "12.1.1-release.0"
+patches-version = "dev"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
@@ -11,12 +12,12 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [Twitter-Piko.patches]
 "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"]
 "gitlab:inotia00/x-shim" = []
-patches-version = "dev"
 
 [X-Piko]
 app-name = "X"
 brand = "Piko"
 version = "12.1.1-release.0"
+patches-version = "dev"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
@@ -24,13 +25,13 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [X-Piko.patches]
 "github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
 "gitlab:inotia00/x-shim" = []
-patches-version = "dev"
 
 [Instagram]
 app-name = "Instagram"
 brand = "Piko"
 version = "auto"
 # version = "430.0.0.53.80"
+patches-version = "dev"
 github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
@@ -38,7 +39,6 @@ arch = "arm64-v8a"
 
 [Instagram.patches]
 "github:crimera/piko" = []
-patches-version = "dev"
 
 [Facebook]
 app-name = "Facebook"
