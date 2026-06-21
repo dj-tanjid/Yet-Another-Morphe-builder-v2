@@ -5,7 +5,7 @@ on:
       patch_source:
         description: 'Select patch source'
         required: true
-        default: 'morphe'
+        default: 'Piko'
         type: choice
         options:
           - Morphe
