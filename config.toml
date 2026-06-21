@@ -11,7 +11,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [Twitter-Piko.patches]
 "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"]
 "gitlab:inotia00/x-shim" = []
-version = "dev"
+patches-version = "dev"
 
 [X-Piko]
 app-name = "X"
@@ -24,7 +24,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [X-Piko.patches]
 "github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
 "gitlab:inotia00/x-shim" = []
-version = "dev"
+patches-version = "dev"
 
 [Instagram]
 app-name = "Instagram"
@@ -38,7 +38,7 @@ arch = "arm64-v8a"
 
 [Instagram.patches]
 "github:crimera/piko" = []
-version = "dev"
+patches-version = "dev"
 
 [Facebook]
 app-name = "Facebook"
