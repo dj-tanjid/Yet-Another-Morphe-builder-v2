@@ -319,7 +319,7 @@ changelog-keywords = ["FotMob"]
 brand = "hoo-dles"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/hellochinese-learn-chinese-mandarin/hellochinese-learn-chinese/"
 uptodown-dlurl = "https://hellochinese.en.uptodown.com/android"
-changelog-keywords = ["HelloChinese"]
+changelog-keywords = ["Chinese"]
 
 [HelloChinese.patches]
 "github:hoo-dles/morphe-patches" = []
@@ -327,7 +327,7 @@ changelog-keywords = ["HelloChinese"]
 [ibis-Paint-X]
 brand = "hoo-dles"
 uptodown-dlurl = "https://ibispaint-x.en.uptodown.com/android"
-changelog-keywords = ["Ibis Paint"]
+changelog-keywords = ["Ibis", "Paint"]
 
 [ibis-Paint-X.patches]
 "github:hoo-dles/morphe-patches" = []
@@ -408,7 +408,7 @@ changelog-keywords = ["Prime Video"]
 brand = "hoo-dles"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/urbandroid-team/sleep-as-android-sleep-cycle-tracker-smart-alarm/"
 uptodown-dlurl = "https://sleep-as-android.en.uptodown.com/android"
-changelog-keywords = ["Sleep as Android"]
+changelog-keywords = ["Sleep"]
 
 [Sleep-as-Android.patches]
 "github:hoo-dles/morphe-patches" = []
@@ -471,7 +471,7 @@ changelog-keywords = ["Windy"]
 brand = "hoo-dles"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/wps-software-pte-ltd/wps-office-pdf/"
 uptodown-dlurl = "https://wps-office.en.uptodown.com/android"
-changelog-keywords = ["WPS Office"]
+changelog-keywords = ["WPS"]
 
 [WPS-Office.patches]
 "github:hoo-dles/morphe-patches" = []
