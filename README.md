@@ -266,7 +266,6 @@ For full configuration reference, setup and contributing guide, see [CONTRIBUTIN
 
 <p align="center"><i>Maintained with ❤️ by <a href="https://github.com/krvstek">krvstek</a> and <a href="https://github.com/nvbangg">nvbangg</a></i></p>
 
-<!-- 
 ## 🤝 Acknowledgments
 
 This repo is based on the [krvstek/uni-apks](https://github.com/krvstek/uni-apks) (GPL-3.0). See [all changes](https://github.com/nvbangg/builder-for-morphe/commits/main/?author=nvbangg):
