@@ -24,7 +24,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
 
 [X-Piko.patches]
-# "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] #Fetch Latest Patch
+# "github:crimera/piko" = ["Browse tweet object", "Dynamic color"] #Fetch Latest Patch
 "github:crimera/piko" = { version = "dev", include = ["Browse tweet object", "Dynamic color"] }
 "gitlab:inotia00/x-shim" = []
 
