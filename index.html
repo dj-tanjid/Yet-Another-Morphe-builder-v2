@@ -113,6 +113,7 @@
           }
         };
         let processedText = markdownText
+          .replace("<!-- search-bar -->", '<input type="text" id="search-input" style="width: 100%; max-width: 300px; margin-bottom: 10px;" placeholder="🔍 Search apps" />')
           .replace(/\u3000/g, "&#x3000;")
           .replace(/\u2002/g, "&#x2002;")
           .replace(/\u2003/g, "&#x2003;")
@@ -132,6 +133,37 @@
           if (!href.startsWith('#') && !/^[a-z0-9+.-]+:/i.test(href)) {
             a.href = new URL(href, base).href;
           }
+        }
+
+        // Setup search bar
+        const searchInput = document.getElementById("search-input");
+        if (searchInput) {
+          const detailsElems = contentEl.querySelectorAll("details");
+          detailsElems.forEach(details => details.dataset.defaultOpen = details.open);
+
+          searchInput.addEventListener("input", event => {
+            const query = event.target.value.toLowerCase().trim();
+            detailsElems.forEach(details => {
+              const rows = details.querySelectorAll("tbody tr");
+              if (!rows.length) return;
+
+              let hasMatch = false;
+              rows.forEach(row => {
+                const match = !query || row.textContent.toLowerCase().includes(query);
+                row.style.display = match ? "" : "none";
+                if (match) hasMatch = true;
+              });
+
+              details.style.display = hasMatch ? "" : "none";
+              details.open = query ? true : details.dataset.defaultOpen === "true";
+            });
+          });
+
+          searchInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+              searchInput.blur();
+            }
+          });
         }
 
         fetch("https://api.github.com/repos/builder-for-morphe/builder-for-morphe.github.io/releases?per_page=100")
