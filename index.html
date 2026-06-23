@@ -9,9 +9,11 @@
   <title>Builder for Morphe Website</title>
   <meta name="description" content="📦 Pre-built APKs from various patch sources." />
   <link rel="canonical" href="https://builder-for-morphe.github.io/" />
-  <link rel="icon" type="image/svg+xml" href="https://raw.githubusercontent.com/nvbangg/awesome-for-morphe/refs/heads/gh-pages/src/favicon.svg" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown.min.css" />
-  
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%233b82f6' /%3E%3Cstop offset='100%25' stop-color='%2310b981' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='16' fill='url(%23grad)' /%3E%3Cpath fill='%23ffffff' transform='translate(6, 6) scale(1.25)' d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'/%3E%3C/svg%3E" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown.min.css" />
+
   <style>
     body {
       margin: 0;
@@ -112,12 +114,23 @@
             svgPath: "M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
           }
         };
-        let processedText = markdownText.replace(/^> \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*\r?\n((?:>.*(?:\r?\n|$))+)/gim, (match, type, p1) => {
-          const config = alertConfig[type.toLowerCase()];
-          let cleanText = p1.replace(/^>\s?/gm, "");
-          let htmlContent = marked.parse(cleanText);
-          return `<div class="markdown-alert markdown-alert-${type.toLowerCase()}">\n<p class="markdown-alert-title"><svg class="${config.iconClass}" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="${config.svgPath}"></path></svg>${config.title}</p>\n${htmlContent}</div>\n`;
-        });
+        const searchHtml = '<div class="markdown-alert markdown-alert-important" style="margin-bottom: 16px;">' +
+          `<p class="markdown-alert-title"><svg class="${alertConfig.important.iconClass}" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="${alertConfig.important.svgPath}"></path></svg>${alertConfig.important.title}</p>` +
+          '<p>▶️ » Install <a id="microg-link" href="https://github.com/MorpheApp/MicroG-RE/releases" target="_blank">MicroG-RE</a> to enable Google account sign-in for supported apps</p>' +
+          '</div>' +
+          '<input type="text" id="search-input" style="width: 100%; max-width: 350px; margin-bottom: 10px;" placeholder="🔍 Search apps" />';
+
+        let processedText = markdownText
+          .replace("<!-- search-bar -->", searchHtml)
+          .replace(/\u3000/g, "&#x3000;")
+          .replace(/\u2002/g, "&#x2002;")
+          .replace(/\u2003/g, "&#x2003;")
+          .replace(/^> \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*\r?\n((?:>.*(?:\r?\n|$))+)/gim, (match, type, p1) => {
+            const config = alertConfig[type.toLowerCase()];
+            let cleanText = p1.replace(/^>\s?/gm, "");
+            let htmlContent = marked.parse(cleanText);
+            return `<div class="markdown-alert markdown-alert-${type.toLowerCase()}">\n<p class="markdown-alert-title"><svg class="${config.iconClass}" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="${config.svgPath}"></path></svg>${config.title}</p>\n${htmlContent}</div>\n`;
+          });
 
         const contentEl = document.getElementById("content");
         contentEl.innerHTML = marked.parse(processedText);
@@ -129,6 +142,74 @@
             a.href = new URL(href, base).href;
           }
         }
+
+        // Setup search bar
+        const searchInput = document.getElementById("search-input");
+        if (searchInput) {
+          const detailsElems = contentEl.querySelectorAll("details");
+          detailsElems.forEach(details => details.dataset.defaultOpen = details.open);
+
+          searchInput.addEventListener("input", event => {
+            const query = event.target.value.toLowerCase().trim();
+            detailsElems.forEach(details => {
+              const rows = details.querySelectorAll("tbody tr");
+              if (!rows.length) return;
+
+              let hasMatch = false;
+              rows.forEach(row => {
+                const match = !query || row.textContent.toLowerCase().includes(query);
+                row.style.display = match ? "" : "none";
+                if (match) hasMatch = true;
+              });
+
+              details.style.display = hasMatch ? "" : "none";
+              details.open = query ? true : details.dataset.defaultOpen === "true";
+            });
+          });
+
+          searchInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+              searchInput.blur();
+            }
+          });
+        }
+
+        fetch("https://api.github.com/repos/MorpheApp/MicroG-RE/releases/latest")
+          .then(res => res.json())
+          .then(release => {
+            const asset = (release.assets || []).find(x => x.name.endsWith('.apk'));
+            if (asset) {
+              const microgLink = document.getElementById("microg-link");
+              if (microgLink) microgLink.href = asset.browser_download_url;
+            }
+          })
+          .catch(error => console.warn("Error fetching MicroG release:", error));
+
+        fetch("https://api.github.com/repos/builder-for-morphe/builder-for-morphe.github.io/releases?per_page=100")
+          .then(res => res.json())
+          .then(releases => {
+            for (const a of contentEl.querySelectorAll('a[href*="#tag="]')) {
+              const url = new URL(a.href);
+              const params = new URLSearchParams(url.hash.substring(1));
+              const tagMatch = params.get('tag');
+              const assetMatch = params.get('asset');
+
+              if (!tagMatch || !assetMatch) continue;
+              const tagMatchStr = tagMatch.toLowerCase();
+              const assetMatchStr = assetMatch.toLowerCase();
+
+              for (const r of releases) {
+                if (r.tag_name && r.tag_name.toLowerCase().endsWith(tagMatchStr)) {
+                  const asset = (r.assets || []).find(x => x.name.toLowerCase().includes(assetMatchStr) && x.name.endsWith('.apk'));
+                  if (asset) {
+                    a.href = asset.browser_download_url;
+                    break;
+                  }
+                }
+              }
+            }
+          })
+          .catch(error => console.warn("Error fetching releases:", error));
       })
       .catch((error) => {
         document.getElementById("content").innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
