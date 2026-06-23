@@ -29,6 +29,8 @@ Pre-built APKs are available for download from [this forked repository](https://
 > [!IMPORTANT]
 > ▶️ » Install [MicroG-RE](https://github.com/MorpheApp/MicroG-RE/releases) to enable Google account sign-in for supported apps
 
+<!-- search-bar -->
+
 <details open>
 <summary><code>🧩 Morphe Patches</code> <a href="https://github.com/MorpheApp/morphe-patches"><img src="https://img.shields.io/badge/Repo-black?style=social&logo=github" alt="Repo"></a></summary>
 
