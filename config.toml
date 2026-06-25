@@ -3,8 +3,8 @@ strict-sigcheck = false
 [Twitter-Piko]
 app-name = "Twitter"
 brand = "Piko"
-# version = "12.1.1-release.0"
-version = "12.2.0-release.0"
+# version = "12.2.0-release.0"
+version = "12.2.1-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
@@ -17,8 +17,8 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [X-Piko]
 app-name = "X"
 brand = "Piko"
-# version = "12.1.1-release.0"
-version = "12.2.0-release.0"
+# version = "12.2.0-release.0"
+version = "12.2.1-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 # skip-sigcheck = true
