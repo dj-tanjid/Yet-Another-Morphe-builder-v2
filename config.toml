@@ -67,3 +67,44 @@ arch = "arm64-v8a"
 
 [Messenger.patches]
 "github:RookieEnough/De-Vanced" = []
+
+["1.1.1.1"]
+enabled = true
+brand = "rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/cloudflare/1-1-1-1-faster-safer-internet/"
+uptodown-dlurl = "https://1-1-1-1.en.uptodown.com/android"
+changelog-keywords = ["1.1.1"]
+
+["1.1.1.1".patches]
+"github:rushiranpise/morphe-patches" = []
+
+[Hola-VPN]
+enabled = true
+brand = "rushi"
+uptodown-dlurl = "https://holavpn.en.uptodown.com/android"
+arch = "arm64-v8a"
+changelog-keywords = ["Hola VPN"]
+
+[Hola-VPN.patches]
+"github:rushiranpise/morphe-patches" = []
+
+[CPU-Z]
+enabled = true
+brand = "rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/cpuid/cpu-z/"
+uptodown-dlurl = "https://cpu-z.en.uptodown.com/android"
+changelog-keywords = ["CPU"]
+
+[CPU-Z.patches]
+"github:rushiranpise/morphe-patches" = []
+
+[TeraBox]
+enabled = true
+brand = "rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/flextech-inc/terabox-cloud-storage-cloud-backup-data-backup/"
+uptodown-dlurl = "https://terabox.en.uptodown.com/android"
+changelog-keywords = ["TeraBox"]
+
+[TeraBox.patches]
+"github:rushiranpise/morphe-patches" = []
+
