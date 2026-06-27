@@ -42,8 +42,8 @@ uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 arch = "arm64-v8a"
 
 [Instagram.patches]
-"github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] #Fetch Latest Patch
-# "github:crimera/piko" = { version = "dev", include = ["Bring back twitter", "Browse tweet object", "Dynamic color"] }
+"github:crimera/piko" = [] #Fetch Latest Patch
+# "github:crimera/piko" = { version = "dev", include = [] }
 
 [Facebook]
 enabled = true
@@ -143,3 +143,4 @@ changelog-keywords = ["Proton VPN"]
 
 [Proton-VPN-Paresh.patches]
 "gitlab:Paresh-Maheshwari/paresh-patches" = []
+# "gitlab:Paresh-Maheshwari/paresh-patches" = { version = "dev", include = [] }
