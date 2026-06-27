@@ -10,11 +10,11 @@ on:
         options:
           - Morphe
           - Piko
-          - Hoo-dles
           - De-Vanced
           - Paresh
-          - Anddea
           - Rushi
+          - Anddea
+          - Hoo-dles
   workflow_call:
     inputs:
       patch_source:
