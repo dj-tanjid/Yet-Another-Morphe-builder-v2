@@ -200,7 +200,7 @@
 
               for (const r of releases) {
                 if (r.tag_name && r.tag_name.toLowerCase().endsWith(tagMatchStr)) {
-                  const asset = (r.assets || []).find(x => x.name.toLowerCase().includes(assetMatchStr) && x.name.endsWith('.apk'));
+                  const asset = (r.assets || []).find(x => x.name.toLowerCase().includes(assetMatchStr) && x.name.endsWith('.apk') && !x.name.toLowerCase().includes('armeabi-v7a'));
                   if (asset) {
                     a.href = asset.browser_download_url;
                     break;

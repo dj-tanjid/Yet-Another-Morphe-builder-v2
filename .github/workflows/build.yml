@@ -14,7 +14,7 @@ on:
           - De-Vanced
           - Paresh
           - Anddea
-          - Ample
+          - Rushi
   workflow_call:
     inputs:
       patch_source:
