@@ -18,7 +18,7 @@ on:
   workflow_call:
     inputs:
       patch_source:
-        default: 'morphe'
+        default: 'Morphe'
         type: string
       filter_changelog:
         default: false
