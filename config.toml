@@ -130,6 +130,17 @@ changelog-keywords = ["Proton VPN"]
 [Proton-VPN-Rushi.patches]
 "github:rushiranpise/morphe-patches" = []
 
+[Windscribe-VPN]
+enabled = true
+app-name = "Windscribe-VPN"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/windscribe/windscribe-vpn/"
+uptodown-dlurl = "https://windscribe.en.uptodown.com/android"
+changelog-keywords = ["Windscribe"]
+
+[Windscribe-VPN.patches]
+"github:rushiranpise/morphe-patches" = []
+
 [Proton-VPN-Paresh]
 enabled = true
 app-name = "Proton-VPN"
