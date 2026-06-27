@@ -5,20 +5,20 @@ on:
       patch_source:
         description: 'Select patch source'
         required: true
-        default: 'Piko'
+        default: 'piko'
         type: choice
         options:
-          - Morphe
-          - Piko
-          - De-Vanced
-          - Paresh
-          - Rushi
-          - Anddea
-          - Hoo-dles
+          - morphe
+          - piko
+          - hoo-dles
+          - paresh
+          - rushi
+          - de-vanced
+          - anddea
   workflow_call:
     inputs:
       patch_source:
-        default: 'Morphe'
+        default: 'morphe'
         type: string
       filter_changelog:
         default: false
