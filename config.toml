@@ -108,3 +108,15 @@ changelog-keywords = ["TeraBox"]
 [TeraBox.patches]
 "github:rushiranpise/morphe-patches" = []
 
+[Proton-VPN]
+enabled = true
+brand = "paresh"
+app-name = "Proton VPN"
+github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/ch.protonvpn.android"
+# apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/"
+# uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
+skip-sigcheck = true
+changelog-keywords = ["Proton VPN"]
+
+[Proton-VPN.patches]
+"gitlab:Paresh-Maheshwari/paresh-patches" = []
