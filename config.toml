@@ -78,8 +78,8 @@ enabled = true
 app-name = "Threads"
 brand = "De-Vanced"
 github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.instagram.barcelona"
-# apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/threads-an-instagram-app/"
-# uptodown-dlurl = "https://threads.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/threads-an-instagram-app/"
+uptodown-dlurl = "https://threads.en.uptodown.com/android"
 arch = "arm64-v8a"
 
 [Threads.patches]
@@ -136,8 +136,8 @@ app-name = "Proton-VPN"
 brand = "Paresh"
 app-name = "Proton VPN"
 github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/ch.protonvpn.android"
-# apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/"
-# uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/"
+uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
 skip-sigcheck = true
 changelog-keywords = ["Proton VPN"]
 
