@@ -70,7 +70,10 @@ jobs:
         env:
           FILTER_CHANGELOG: ${{ inputs.filter_changelog }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "matrix=$(uv run python -m src.scripts.matrix get-matrix '${{ inputs.patch_source }}')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "matrix<<EOF" >> "$GITHUB_OUTPUT"
+          uv run python -m src.scripts.matrix get-matrix '${{ inputs.patch_source }}' >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
   run:
     needs: prepare
