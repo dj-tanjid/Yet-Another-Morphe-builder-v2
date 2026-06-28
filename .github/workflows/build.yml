@@ -8,12 +8,12 @@ on:
         default: 'Piko'
         type: choice
         options:
-          - Morphe
           - Piko
-          - Hoo-dles
-          - Paresh
-          - Rushi
           - De-Vanced
+          - Rushi
+          - Paresh
+          - Morphe
+          - Hoo-dles
           - Anddea
   workflow_call:
     inputs:
