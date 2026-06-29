@@ -96,8 +96,8 @@ uptodown-dlurl = "https://1-1-1-1.en.uptodown.com/android"
 changelog-keywords = ["1.1.1"]
 
 ["1.1.1.1".patches]
-# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Hola-VPN]
 enabled = true
@@ -108,8 +108,8 @@ arch = "arm64-v8a"
 changelog-keywords = ["Hola VPN"]
 
 [Hola-VPN.patches]
-# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Proton-VPN-Rushi]
 enabled = true
@@ -120,8 +120,8 @@ uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
 changelog-keywords = ["Proton VPN"]
 
 [Proton-VPN-Rushi.patches]
-# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Windscribe-VPN]
 enabled = true
@@ -132,8 +132,8 @@ uptodown-dlurl = "https://windscribe.en.uptodown.com/android"
 changelog-keywords = ["Windscribe"]
 
 [Windscribe-VPN.patches]
-# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Psiphon-VPN]
 enabled = true
@@ -144,8 +144,8 @@ uptodown-dlurl = "https://psiphon-pro.en.uptodown.com/android"
 changelog-keywords = ["Psiphon"]
 
 [Psiphon-VPN.patches]
-# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [TeraBox]
 enabled = true
@@ -156,8 +156,8 @@ uptodown-dlurl = "https://terabox.en.uptodown.com/android"
 changelog-keywords = ["TeraBox"]
 
 [TeraBox.patches]
-# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Proton-VPN-Paresh]
 enabled = true
