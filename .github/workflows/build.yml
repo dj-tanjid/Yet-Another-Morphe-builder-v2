@@ -190,7 +190,7 @@ jobs:
           TAG: ${{ needs.prepare.outputs.version }}
         run: |
           uv run python -m src.scripts.logs combine-logs logs | sed "s/{TAG}/$TAG/g" > final.md
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "$TAG" --notes-file final.md
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "Morphe x ${{ inputs.patch_source }} by TJ R$(date +%y.%m.%d)" --notes-file final.md
 
       - name: Send Telegram notification
         if: steps.check.outputs.has_apks == 'true' && env.TG_TOKEN != '' && env.TG_CHAT != ''
