@@ -1,7 +1,6 @@
 import contextlib
 import os
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -74,7 +73,10 @@ class PatcherCLI:
 
     def get_last_supported_version(self, list_patches_output: str, pkg_name: str, patches: dict[str, dict]) -> str | None:
         all_included = [p for spec in patches.values() for p in spec["include"]]
-        if all_included and (all_vers := [v for p in all_included for v in _parse_patch_block(list_patches_output, p)]):
+        all_vers: list[str] = []
+        for p in all_included:
+            all_vers.extend(_parse_patch_block(list_patches_output, p))
+        if all_vers:
             return get_highest_ver(all_vers)
 
         versions_output = self.list_versions(pkg_name)
@@ -122,8 +124,7 @@ class PatcherCLI:
         return p_args
 
     def patch(self, stock_apk: Path, output_apk: Path, patch_args: list[str]) -> None:
-        tmp_files_dir = output_apk.parent / f"tmp-{output_apk.stem}"
-        base_cmd = ["-jar", self.cli_jar, "patch", stock_apk, "--purge", "-o", output_apk, "-t", tmp_files_dir]
+        base_cmd = ["-jar", self.cli_jar, "patch", stock_apk, "--purge", "-o", output_apk]
         ks_args: list[str] = []
         if self.ks_path and (ks_pass := os.getenv("KEYSTORE_PASS")) and (ks_alias := os.getenv("KEYSTORE_ALIAS")):
             ks_args = [f"--keystore={self.ks_path}", f"--keystore-entry-password={ks_pass}", f"--keystore-password={ks_pass}", f"--signer={ks_alias}", f"--keystore-entry-alias={ks_alias}"]
@@ -139,8 +140,6 @@ class PatcherCLI:
         except PatcherError as exc:
             output_apk.unlink(missing_ok=True)
             raise PatcherError(f"Patching '{stock_apk.name}' failed:\n{exc}") from exc
-        finally:
-            shutil.rmtree(tmp_files_dir, ignore_errors=True)
 
     def check_signature(self, apk: Path, pkg_name: str) -> bool:
         expected = self._signatures.get(pkg_name)
