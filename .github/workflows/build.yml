@@ -5,21 +5,20 @@ on:
       patch_source:
         description: 'Select patch source'
         required: true
-        default: 'morphe'
+        default: 'Piko'
         type: choice
         options:
-          - morphe
-          - morphe-dev
-          - piko
-          - hoo-dles
-          - paresh
-          - rushi
-          - de-vanced
-          - anddea
+          - Piko
+          - De-Vanced
+          - Rushi
+          - Paresh
+          - Morphe
+          - Hoo-dles
+          - Anddea
   workflow_call:
     inputs:
       patch_source:
-        default: 'morphe'
+        default: 'Morphe'
         type: string
       filter_changelog:
         default: false
@@ -194,9 +193,9 @@ jobs:
         run: |
           uv run python -m src.scripts.logs combine-logs logs | sed "s/{TAG}/$TAG/g" > final.md
           if [ "$PRERELEASE" = "true" ]; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --title "$TAG" --notes-file final.md
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --title "Morphe x ${{ inputs.patch_source }} by TJ R$(date +%y.%m.%d)" --notes-file final.md
           else
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "$TAG" --notes-file final.md
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "Morphe x ${{ inputs.patch_source }} by TJ R$(date +%y.%m.%d)" --notes-file final.md
           fi
 
       - name: Send Telegram notification
