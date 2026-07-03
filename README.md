@@ -20,9 +20,7 @@ Here you can download and use applications selected for this repository, which a
 
 ## 📋 List of apps in this repository
 
-Pre-built APKs are available for download from [this forked repository](https://github.com/builder-for-morphe/builder-for-morphe.github.io/#-list-of-apps-in-this-repository):
-
-[![Website](https://img.shields.io/badge/Website-blue?style=social&logo=google-chrome)](https://builder-for-morphe.github.io/)　[![Telegram Channel](https://img.shields.io/badge/Telegram_Channel-blue?style=social&logo=telegram)](https://t.me/builder_for_morphe)
+Pre-built APKs are available for download from [This Forked Repository](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/#-list-of-apps-in-this-repository):
 
 <!-- search-bar -->
 
