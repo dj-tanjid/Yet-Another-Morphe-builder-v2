@@ -299,7 +299,7 @@ To ensure that the APK files you download are genuinely compiled by this project
 
 For maximum security, we recommend building your own APKs as follows:
 
-- 🍴 `Fork` [this repo](https://github.com/nvbangg/builder-for-morphe) (don't forget to ⭐ `Star` and 👀 `Watch` it)
+- 🍴 `Fork` [This Repo](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2) (don't forget to ⭐ `Star` and 👀 `Watch` it)
 - ⚙️ **[Optional]** Customize the apps you want in [`config.toml`](config.toml)
 - 🚀 Run the [CI workflow](../../actions/workflows/ci.yml) (make sure workflows are enabled first)
 - ⬇️ Download your APKs from [Releases](../../releases)
@@ -322,7 +322,7 @@ For all Morphe resources, projects, supported apps and patches, visit [nvbangg/a
 
 ---
 
-<p align="center">⭐ Star <a href="https://github.com/nvbangg/builder-for-morphe">this repo</a> if useful</p>
+<p align="center">⭐ Star <a href="https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2">this Repo</a> if useful</p>
 
 <details>
 <summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">dj_tanjid</a>
