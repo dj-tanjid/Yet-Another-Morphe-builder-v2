@@ -1,4 +1,4 @@
-## [nvbangg/builder-for-morphe](https://github.com/nvbangg/builder-for-morphe)
+## [Yet Another Morphe Builder by TJ](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2)
 
 <div align="center">
 
