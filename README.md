@@ -325,7 +325,8 @@ For all Morphe resources, projects, supported apps and patches, visit [nvbangg/a
 <p align="center">⭐ Star <a href="https://github.com/nvbangg/builder-for-morphe">this repo</a> if useful</p>
 
 <details>
-<summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/nvbangg">nvbangg</a> and <a href="https://github.com/krvstek">krvstek</a></i></summary>
+<summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">dj_tanjid</a>
+and crafted by <a href="https://github.com/nvbangg">nvbangg</a> and <a href="https://github.com/krvstek">krvstek</a></i></summary>
 
 ### 🤝 Acknowledgments
 
