@@ -171,8 +171,8 @@ uptodown-dlurl = "https://terabox.en.uptodown.com/android"
 changelog-keywords = ["TeraBox"]
 
 [TeraBox.patches]
-"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Proton-VPN-Paresh]
 enabled = true
