@@ -183,5 +183,5 @@ skip-sigcheck = true
 changelog-keywords = ["Proton VPN"]
 
 [Proton-VPN-Paresh.patches]
-# "gitlab:Paresh-Maheshwari/paresh-patches" = [] # Fetch Latest Stable Patch
-"gitlab:Paresh-Maheshwari/paresh-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"gitlab:Paresh-Maheshwari/paresh-patches" = [] # Fetch Latest Stable Patch
+# "gitlab:Paresh-Maheshwari/paresh-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
