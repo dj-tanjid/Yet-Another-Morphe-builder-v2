@@ -141,6 +141,10 @@
           if (!href.startsWith('#') && !/^[a-z0-9+.-]+:/i.test(href)) {
             a.href = new URL(href, base).href;
           }
+          if (!href.startsWith('#')) {
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener noreferrer');
+          }
         }
 
         // Setup search bar
