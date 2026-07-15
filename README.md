@@ -4,6 +4,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/dj-tanjid/Yet-Another-Morphe-builder-v2?label=Latest%20Release&logo=android)](../../releases/latest)
 
 <div align="center">
+  
 [![Typing SVG](https://readme-typing-svg.demolab.com/?font=Google+Sans&size=25&duration=3000&pause=2000&color=&center=true&vCenter=true&random=false&width=550&lines=%F0%9F%93%A6+Pre-built+APKs+from+various+patch+sources)](../../releases)<br>
 Here you can download and use applications selected for this repository, which are enhanced with many functionalities that will certainly be useful to you.
 </div>
