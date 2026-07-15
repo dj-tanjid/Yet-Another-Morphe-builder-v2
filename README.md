@@ -1,5 +1,8 @@
 ## [Yet Another Morphe Builder by TJ](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2)
 
+[![GitHub License](https://img.shields.io/github/license/dj-tanjid/Yet-Another-Morphe-builder-v2?logo=github&label=License&link=https%3A%2F%2Fgithub.com%2Fdj-tanjid%2FMorphe-DeVanced-Builder%2Fblob%2Fmain%2FLICENSE)](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/blob/main/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/dj-tanjid/Yet-Another-Morphe-builder-v2?label=Latest%20Release&logo=android)](../../releases/latest)
+
 <div align="center">
 
 [![Typing SVG](https://readme-typing-svg.demolab.com/?font=Google+Sans&size=25&duration=3000&pause=2000&color=&center=true&vCenter=true&random=false&width=550&lines=%F0%9F%93%A6+Pre-built+APKs+from+various+patch+sources)](../../releases)<br>
