@@ -3,7 +3,7 @@
 <div align="center">
   
 [![GitHub License](https://img.shields.io/github/license/dj-tanjid/Yet-Another-Morphe-builder-v2?logo=github&label=License&link=https%3A%2F%2Fgithub.com%2Fdj-tanjid%2FMorphe-DeVanced-Builder%2Fblob%2Fmain%2FLICENSE)](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/blob/main/LICENSE)
-[![Latest Release](https://img.shields.io/github/v/release/dj-tanjid/Yet-Another-Morphe-builder-v2?label=Latest%20Release&logo=android)](../../releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/dj-tanjid/Yet-Another-Morphe-builder-v2?label=Latest%20Release&logo=android)](../../releases/)
 </div>
 
 <div align="center">
