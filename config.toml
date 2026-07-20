@@ -212,7 +212,7 @@ changelog-keywords = ["Speedtest"]
 
 [Universal-TV-Remote-Control]
 enabled = true
-app-name = "TeraBox"
+app-name = "Universal TV Remote Control"
 brand = "Rushi"
 uptodown-dlurl = "https://unimote.en.uptodown.com/android"
 changelog-keywords = ["TV", "Remote"]
@@ -223,7 +223,7 @@ changelog-keywords = ["TV", "Remote"]
 
 [Waze]
 enabled = true
-app-name = "TeraBox"
+app-name = "Waze"
 brand = "Rushi"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/waze/waze-gps-maps-traffic-alerts-live-navigation/"
 uptodown-dlurl = "https://waze.en.uptodown.com/android"
