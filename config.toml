@@ -128,6 +128,7 @@ changelog-keywords = ["Hola VPN"]
 enabled = true
 app-name = "Proton VPN"
 brand = "Rushi"
+version = ""
 apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/"
 uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
 changelog-keywords = ["Proton VPN"]
@@ -169,6 +170,66 @@ uptodown-dlurl = "https://terabox.en.uptodown.com/android"
 changelog-keywords = ["TeraBox"]
 
 [TeraBox.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[CPU-Z]
+enabled = true
+app-name = "CPU-Z"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/cpuid/cpu-z/"
+uptodown-dlurl = "https://cpu-z.en.uptodown.com/android"
+changelog-keywords = ["CPU"]
+
+[CPU-Z.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[NetGuard]
+enabled = true
+app-name = "NetGuard"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/marcel-bokhorst/netguard-no-root-firewall/"
+uptodown-dlurl = "https://netguard.en.uptodown.com/android"
+changelog-keywords = ["NetGuard"]
+
+[NetGuard.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Speedtest-by-Ookla]
+enabled = true
+app-name = "Speedtest by Ookla"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/ookla/speedtest/"
+uptodown-dlurl = "https://speedtest-net-mobile.en.uptodown.com/android"
+arch = "both"
+changelog-keywords = ["Speedtest"]
+
+[Speedtest-by-Ookla.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Universal-TV-Remote-Control]
+enabled = true
+app-name = "TeraBox"
+brand = "Rushi"
+uptodown-dlurl = "https://unimote.en.uptodown.com/android"
+changelog-keywords = ["TV", "Remote"]
+
+[Universal-TV-Remote-Control.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Waze]
+enabled = true
+app-name = "TeraBox"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/waze/waze-gps-maps-traffic-alerts-live-navigation/"
+uptodown-dlurl = "https://waze.en.uptodown.com/android"
+changelog-keywords = ["Waze"]
+
+[Waze.patches]
 "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
 # "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
