@@ -334,7 +334,7 @@ For all Morphe resources, projects, supported apps and patches, visit [nvbangg/a
 
 <details>
 <summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a>
-and crafted by <a href="https://github.com/nvbangg">nvbangg</a> and <a href="https://github.com/krvstek">krvstek</a></i></summary>
+/nand crafted by <a href="https://github.com/nvbangg">nvbangg</a> & <a href="https://github.com/krvstek">krvstek</a></i></summary>
 
 ### 🤝 Acknowledgments
 
