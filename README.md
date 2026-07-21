@@ -1,4 +1,4 @@
-## [Yet Another Morphe Builder by TJ](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2)
+## [Yet Another Morphe Builder by TanJid Creations](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2)
 
 <div align="center">
   
@@ -330,10 +330,10 @@ For all Morphe resources, projects, supported apps and patches, visit [nvbangg/a
 
 ---
 
-<p align="center">⭐ Star <a href="https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2">this Repo</a> if useful</p>
+<p align="center">⭐ Star <a href="https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2">This Repo</a> if useful</p>
 
 <details>
-<summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">dj_tanjid</a>
+<summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a>
 and crafted by <a href="https://github.com/nvbangg">nvbangg</a> and <a href="https://github.com/krvstek">krvstek</a></i></summary>
 
 ### 🤝 Acknowledgments
