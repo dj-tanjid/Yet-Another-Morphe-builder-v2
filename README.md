@@ -333,8 +333,8 @@ For all Morphe resources, projects, supported apps and patches, visit [nvbangg/a
 <p align="center">⭐ Star <a href="https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2">This Repo</a> if useful</p>
 
 <details>
-<summary align="center"><i>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a>
-and crafted by <a href="https://github.com/nvbangg">nvbangg</a> & <a href="https://github.com/krvstek">krvstek</a></i></summary>
+<summary align="center"><i><p>Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a></p>
+<p>and crafted by <a href="https://github.com/nvbangg">nvbangg</a> & <a href="https://github.com/krvstek">krvstek</a></p></i></summary>
 
 ### 🤝 Acknowledgments
 
