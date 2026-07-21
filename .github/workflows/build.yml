@@ -193,9 +193,9 @@ jobs:
         run: |
           uv run python -m src.scripts.logs combine-logs logs | sed "s/{TAG}/$TAG/g" > final.md
           if [ "$PRERELEASE" = "true" ]; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --title "Morphe x ${{ inputs.patch_source }} by TJ R$(date +%y.%m.%d)" --notes-file final.md
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --title "Morphe x ${{ inputs.patch_source }} by TanJid R$(date +%y.%m.%d)" --notes-file final.md
           else
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "Morphe x ${{ inputs.patch_source }} by TJ R$(date +%y.%m.%d)" --notes-file final.md
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "Morphe x ${{ inputs.patch_source }} by TanJid R$(date +%y.%m.%d)" --notes-file final.md
           fi
 
       - name: Send Telegram notification
