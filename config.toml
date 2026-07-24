@@ -234,6 +234,22 @@ changelog-keywords = ["Waze"]
 "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
 # "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
+[Google-Photos]
+enabled = true
+app-name = "Google Photos"
+brand = "De-Vanced"
+arch = "arm64-v8a" # Options 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64', or 'universal'
+# version = "auto"
+# version = "7.85.0.952162352"
+build-mode = "both" # Options 'apk', 'module', or 'both'
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/photos"
+uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
+# archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.photos"
+
+[Google-Photos.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
 
 [Proton-VPN-Paresh]
 enabled = true
