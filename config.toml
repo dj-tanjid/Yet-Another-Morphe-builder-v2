@@ -246,8 +246,8 @@ apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/photos"
 uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
 
 [Google-Photos.patches]
-"github:rushiranpise/morphe-patches" = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction" "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] #Fetch Latest Stable Patch
-# "github:rushiranpise/morphe-patches" = { version = "dev", include = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction" "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction", "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction", "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] } # Fetch Latest Dev Patch
 
 
 [Proton-VPN-Paresh]
