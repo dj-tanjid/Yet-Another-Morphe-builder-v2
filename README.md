@@ -43,9 +43,7 @@ For all Morphe resources, patches and community projects, visit [nvbangg/awesome
 </br>
 Maintained with ❤️ by **[TanJid Creations](https://github.com/dj-tanjid)**
 </br>
-Crafted by **[@nvbangg](https://github.com/nvbangg)**
-</br>
-(syncing upstream from [krvstek/uni-apks](https://github.com/krvstek/uni-apks) with the changes mentioned in the [Features](#features) section)
+Crafted by **[@nvbangg](https://github.com/nvbangg) & [krvstek](https://github.com/krvstek)**
 
 </div>
 
