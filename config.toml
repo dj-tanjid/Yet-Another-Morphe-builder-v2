@@ -105,7 +105,7 @@ app-name = "Hola VPN 64bit"
 brand = "Rushi"
 version = "AARCH64_1.248.400"
 uptodown-dlurl = "https://holavpn.en.uptodown.com/android"
-arch = "arm64-v8a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
+# arch = "arm64-v8a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
 changelog-keywords = ["Hola VPN"]
 
 [Hola-VPN-64bit.patches]
@@ -118,7 +118,7 @@ app-name = "Hola VPN 32bit"
 brand = "Rushi"
 version = "ARM7A_1.248.400"
 uptodown-dlurl = "https://holavpn.en.uptodown.com/android"
-arch = "armeabi-v7a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
+# arch = "armeabi-v7a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
 changelog-keywords = ["Hola VPN"]
 
 [Hola-VPN-32bit.patches]
@@ -166,6 +166,7 @@ changelog-keywords = ["Psiphon"]
 enabled = true
 app-name = "TeraBox"
 brand = "Rushi"
+version = "4.22.6"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/flextech-inc/terabox-cloud-storage-cloud-backup-data-backup/"
 uptodown-dlurl = "https://terabox.en.uptodown.com/android"
 changelog-keywords = ["TeraBox"]
