@@ -39,11 +39,8 @@ For all Morphe resources, patches and community projects, visit [nvbangg/awesome
 
 <div align="center">
 
-**[github.com/nvbangg/builder-for-morphe](https://github.com/nvbangg/builder-for-morphe)**
-
-<h1></h1>
-⭐ Star this repo if you find it useful!  
-Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a>
+⭐ Star this repo if you find it useful!</br>
+Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a></br>
 Crafted by **[@nvbangg](https://github.com/nvbangg)** (syncing upstream from [krvstek/uni-apks](https://github.com/krvstek/uni-apks) with the changes mentioned in the [Features](#features) section)
 
 </div>
