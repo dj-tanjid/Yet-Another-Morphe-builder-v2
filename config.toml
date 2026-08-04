@@ -13,7 +13,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [Twitter-Piko.patches]
 # "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] # Fetch Latest Stable Patch
 "github:crimera/piko" = { version = "dev", include = ["Bring back twitter", "Browse tweet object", "Dynamic color"] } # Fetch Latest Dev Patch
-"gitlab:inotia00/x-shim" = []
+# "gitlab:inotia00/x-shim" = []
 
 [X-Piko]
 enabled = true
@@ -28,7 +28,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 [X-Piko.patches]
 # "github:crimera/piko" = ["Browse tweet object", "Dynamic color"] # Fetch Latest Stable Patch
 "github:crimera/piko" = { version = "dev", include = ["Browse tweet object", "Dynamic color"] } # Fetch Latest Dev Patch
-"gitlab:inotia00/x-shim" = []
+# "gitlab:inotia00/x-shim" = []
 
 [Instagram]
 enabled = true
