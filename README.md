@@ -40,8 +40,8 @@ For all Morphe resources, patches and community projects, visit [nvbangg/awesome
 <div align="center">
 
 ⭐ Star this repo if you find it useful!</br>
-Maintained with ❤️ by <a href="https://github.com/dj-tanjid">TanJid Creations</a></br>
-Crafted by **[@nvbangg](https://github.com/nvbangg)**<\br>
+Maintained with ❤️ by **<a href="https://github.com/dj-tanjid">TanJid Creations</a>** </br>
+Crafted by **[@nvbangg](https://github.com/nvbangg)** <\br>
 (syncing upstream from [krvstek/uni-apks](https://github.com/krvstek/uni-apks) with the changes mentioned in the [Features](#features) section)
 
 </div>
