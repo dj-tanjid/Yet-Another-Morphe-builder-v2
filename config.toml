@@ -45,36 +45,21 @@ patcher-args = "-e 'Theme' -Oamoled=true"
 # "github:crimera/piko" = [] #Fetch Latest Stable Patch
 "github:crimera/piko" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
-[Facebook-T1]
+[Facebook]
 enabled = true
 app-name = "Facebook"
 brand = "De-Vanced"
 # version = "latest"
-version = "500.0.0.57.50"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
 uptodown-dlurl = "https://facebook.en.uptodown.com/android"
 arch = "arm64-v8a"
 
-[Facebook-T1.patches]
-"github:RookieEnough/De-Vanced" = []
-
-[Facebook-T2]
-enabled = true
-app-name = "Facebook"
-brand = "De-Vanced"
-# version = "latest"
-version = "510.0.0.72.41"
-# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
-uptodown-dlurl = "https://facebook.en.uptodown.com/android"
-arch = "arm64-v8a"
-
-[Facebook-T2.patches]
+[Facebook.patches]
 "github:RookieEnough/De-Vanced" = []
 
 [Messenger]
-enabled = false
+enabled = true
 app-name = "Facebook Messenger"
 brand = "De-Vanced"
 version = "latest"
@@ -88,7 +73,7 @@ arch = "arm64-v8a"
 "github:RookieEnough/De-Vanced" = []
 
 [Threads]
-enabled = false
+enabled = true
 app-name = "Threads"
 brand = "De-Vanced"
 version = "latest"
