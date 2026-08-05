@@ -49,7 +49,7 @@ patcher-args = "-e 'Theme' -Oamoled=true"
 enabled = true
 app-name = "Facebook"
 brand = "De-Vanced"
-# version = "latest"
+version = "latest"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
 uptodown-dlurl = "https://facebook.en.uptodown.com/android"
