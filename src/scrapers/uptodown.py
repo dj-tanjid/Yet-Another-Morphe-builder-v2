@@ -1,5 +1,6 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
+# Copyright (C) 2026 TanJid Creations
 # 
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
@@ -86,6 +87,11 @@ class UptodownScraper(BaseScraper):
         files_html = json.loads(self.net.get(f"{base_url}/app/{data_code}/version/{data_version}/files")).get("content", "")
         soup = _parse_html(files_html)
         content = soup.select_one(".content")
+        if not content:
+            raise UptodownError("No content container found for variants")
+
+        # Collect candidate variant elements
+        candidates = []
         node_arch = ""
         for child in content.children:
             if not getattr(child, "name", None):
@@ -108,5 +114,17 @@ class UptodownScraper(BaseScraper):
             if file_id is None:
                 continue
 
-            return self.net.get(f"{url}/download/{file_id}-x"), is_bundle
-        raise UptodownError("No matching variant found")
+            candidates.append((file_id, is_bundle))
+
+        if not candidates:
+            raise UptodownError("No matching variant found")
+
+        # Prioritize standard APK over xapk/split bundle
+        for file_id, is_bundle in candidates:
+            if not is_bundle:
+                return self.net.get(f"{url}/download/{file_id}-x"), False
+
+        # Fallback to split bundle if no standalone APK exists
+        file_id, is_bundle = candidates[0]
+        return self.net.get(f"{url}/download/{file_id}-x"), is_bundle
+        
