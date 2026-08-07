@@ -1,6 +1,4 @@
 strict-sigcheck = false
-patcher-args = "--continue-on-error"
-
 [Twitter-Piko]
 enabled = true
 app-name = "Twitter"
@@ -57,7 +55,7 @@ uptodown-dlurl = "https://facebook.en.uptodown.com/android"
 arch = "arm64-v8a"
 
 [Facebook.patches]
-"github:RookieEnough/De-Vanced" = []
+"github:RookieEnough/De-Vanced" = [patcher-args = "--continue-on-error"]
 
 [Messenger]
 enabled = true
