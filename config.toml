@@ -1,4 +1,5 @@
 strict-sigcheck = false
+patcher-args = "--continue-on-error"
 
 [Twitter-Piko]
 enabled = true
