@@ -90,8 +90,7 @@ class UptodownScraper(BaseScraper):
         if not content:
             raise UptodownError("No content container found for variants")
 
-        # Collect candidate variant elements
-        candidates = []
+        candidates: list[tuple[str, bool]] = []
         node_arch = ""
         for child in content.children:
             if not getattr(child, "name", None):
@@ -119,12 +118,12 @@ class UptodownScraper(BaseScraper):
         if not candidates:
             raise UptodownError("No matching variant found")
 
-        # Prioritize standard APK over xapk/split bundle
+        # 1. Prioritize standalone APKs first
         for file_id, is_bundle in candidates:
             if not is_bundle:
                 return self.net.get(f"{url}/download/{file_id}-x"), False
 
-        # Fallback to split bundle if no standalone APK exists
+        # 2. Fall back to split bundle (xapk) if no standalone APK exists
         file_id, is_bundle = candidates[0]
         return self.net.get(f"{url}/download/{file_id}-x"), is_bundle
         
