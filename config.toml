@@ -1,4 +1,5 @@
 strict-sigcheck = false
+
 [Twitter-Piko]
 enabled = true
 app-name = "Twitter"
