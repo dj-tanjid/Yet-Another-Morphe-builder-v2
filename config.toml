@@ -46,6 +46,7 @@ patcher-args = "-e 'Theme' -Oamoled=true"
 # "github:crimera/piko" = [] #Fetch Latest Stable Patch
 "github:crimera/piko" = { version = "dev", include = [], exclude = ["Unlock Plus benefits"] } # Fetch Latest Dev Patch
 
+
 [Facebook]
 enabled = true
 app-name = "Facebook"
