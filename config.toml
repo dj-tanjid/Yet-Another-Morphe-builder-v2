@@ -40,11 +40,11 @@ github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 arch = "arm64-v8a"
-patcher-args = "-e 'Theme' -Oamoled=true"
+# patcher-args = "-e 'Theme' -Oamoled=true"
 
 [Instagram.patches]
 # "github:crimera/piko" = { include = [], exclude = ["Unlock Plus benefits"] } #Fetch Latest Stable Patch
-"github:crimera/piko" = { version = "dev", include = [], exclude = ["Unlock Plus benefits"] } # Fetch Latest Dev Patch
+"github:crimera/piko" = { version = "dev", include = ["Theme"], exclude = ["Unlock Plus benefits"] } # Fetch Latest Dev Patch
 
 
 [Facebook]
