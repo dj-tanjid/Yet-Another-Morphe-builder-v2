@@ -34,6 +34,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 enabled = true
 app-name = "Instagram"
 brand = "Piko"
+version = "latest"
 # version = "430.0.0.53.80"
 github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
