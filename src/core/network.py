@@ -1,15 +1,6 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
 # Copyright (C) 2026 TanJid Creations
-# 
-# DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
-# This file is part of uni-apks.
-# Canonical source: https://github.com/krvstek/uni-apks
-#
-# Licensed under the GNU GPLv3. You may modify this file,
-# but you MUST keep this original copyright notice intact
-# and prominently state any changes made.
-# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
 import json
@@ -29,7 +20,6 @@ from src.core.logger import epr
 _RETRY_DELAYS = (3, 6, 9)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 
-# Updated browser list using the most robust recent impersonations available in curl_cffi
 _BROWSERS = (
     "chrome124", 
     "chrome120", 
@@ -85,9 +75,7 @@ class NetworkManager:
         self._dest_mu = threading.Lock()
 
     def _create_session(self, browser: str) -> requests.Session:
-        """Create a fresh session with proper headers."""
         sess = requests.Session(impersonate=browser)
-        # Adding an Accept-Language header drastically lowers CF bot scores
         sess.headers.update({
             "Accept-Language": "en-US,en;q=0.9",
             "Sec-Ch-Ua-Mobile": "?0",
@@ -110,7 +98,6 @@ class NetworkManager:
         try:
             if self.browser_cfg.exists() and self.cookie_jar.exists():
                 self._current_browser = self.browser_cfg.read_text().strip()
-                # Must cleanly overwrite self.session to ensure internal CFFI state is clean
                 self.session = self._create_session(self._current_browser)
                 cookies = json.loads(self.cookie_jar.read_text())
                 for k, v in cookies.items():
@@ -127,22 +114,74 @@ class NetworkManager:
         except Exception:
             pass
 
-    def _rotate_browser(self, url: str) -> None:
-        """Fully tears down the blocked session and creates a clean one."""
+    def _bypass_cloudflare_with_playwright(self, url: str) -> bool:
+        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually."""
         try:
-            # We must explicitly close to free sockets before dereferencing
+            from playwright.sync_api import sync_playwright
+            from playwright_stealth import Stealth
+        except ImportError:
+            return False
+
+        epr("Initiating Playwright Stealth (Headless=False) bypass...")
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=False, 
+                    args=["--disable-blink-features=AutomationControlled", "--disable-gpu"]
+                )
+                context = browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                    user_agent=self.session.headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                )
+                Stealth().apply_stealth_sync(context)
+                page = context.new_page()
+                page.goto(url, wait_until="domcontentloaded")
+
+                if "Just a moment" in page.title() or "cf-browser-verification" in page.content():
+                    epr("Cloudflare challenge hit. Attempting interactive Turnstile bypass...")
+                    try:
+                        frame = page.frame_locator('iframe[src*="cloudflare"]').first
+                        if frame:
+                            checkbox = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
+                            checkbox.click(timeout=3000)
+                    except Exception:
+                        pass
+                    
+                    try:
+                        page.wait_for_function("document.title !== 'Just a moment...'", timeout=15000)
+                        page.wait_for_timeout(1000)
+                    except Exception:
+                        epr("Playwright timeout exceeded, moving on.")
+                
+                for c in context.cookies():
+                    self.session.cookies.set(c["name"], c["value"], domain=c["domain"])
+                
+                ua = page.evaluate("navigator.userAgent")
+                self.session.headers.update({"User-Agent": ua})
+                
+                browser.close()
+                self._save_state()
+                return True
+        except Exception as e:
+            epr(f"Playwright bypass failed: {e}")
+            return False
+
+    def _rotate_browser(self, url: str) -> None:
+        """Fully tears down the blocked session and creates a clean one before running Playwright."""
+        try:
             self.session.close() 
         except Exception:
             pass
             
         self._clear_state()
         
-        # Pick a strictly different browser to force a new TLS fingerprint
         available_browsers = [b for b in _BROWSERS if b != self._current_browser]
         self._current_browser = random.choice(available_browsers)
         
-        # Reinitialize self.session entirely
+        # Reinitialize self.session entirely FIRST to prevent "Session is Closed" exceptions
         self.session = self._create_session(self._current_browser)
+        
+        self._bypass_cloudflare_with_playwright(url)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
@@ -165,7 +204,6 @@ class NetworkManager:
             except req_exc.RequestException as exc:
                 last_exc = exc
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
-                # Ensure the broken socket session is destroyed if CFFI throws an internal closed-session error
                 self._rotate_browser(url)
                 _retry_sleep(attempt)
         raise NetworkError(f"Request failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
