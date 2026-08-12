@@ -63,9 +63,21 @@ class UptodownScraper(BaseScraper):
             resp, is_bundle = self._pick_variant_file(url, data_code, str(data_version), apparch)
             soup_ver = _parse_html(resp)
 
-        dl_url = soup_ver.select_one("#detail-download-button")["data-url"]
+        dl_btn = soup_ver.select_one("#detail-download-button")
+        if not dl_btn:
+            raise UptodownError("Download button not found on page")
+            
+        dl_url = dl_btn.get("data-url")
+        if dl_url:
+            final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+        else:
+            final_url = dl_btn.get("href")
+            
+        if not final_url:
+            raise UptodownError("Download URL attribute not found on button")
+
         out_path = dest.with_suffix(".apkm") if is_bundle else dest
-        self.net.download(f"https://dw.uptodown.com/dwn/{dl_url}", out_path)
+        self.net.download(final_url, out_path)
         return DownloadResult(path=out_path, is_bundle=is_bundle)
 
     def _find_version_url(self, url: str, data_code: str, version: str) -> dict:
@@ -118,12 +130,12 @@ class UptodownScraper(BaseScraper):
         if not candidates:
             raise UptodownError("No matching variant found")
 
-        # 1. Prioritize standalone APKs first
+        # Prioritize standalone APKs first
         for file_id, is_bundle in candidates:
             if not is_bundle:
                 return self.net.get(f"{url}/download/{file_id}-x"), False
 
-        # 2. Fall back to split bundle (xapk) if no standalone APK exists
+        # Fall back to split bundle (xapk) if no standalone APK exists
         file_id, is_bundle = candidates[0]
         return self.net.get(f"{url}/download/{file_id}-x"), is_bundle
         
