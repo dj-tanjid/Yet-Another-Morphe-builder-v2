@@ -5,9 +5,14 @@
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
 # Canonical source: https://github.com/krvstek/uni-apks
+#
+# Licensed under the GNU GPLv3. You may modify this file,
+# but you MUST keep this original copyright notice intact
+# and prominently state any changes made.
+# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
-import json
+import json  # noqa: I001
 import re
 from pathlib import Path
 
@@ -15,6 +20,7 @@ from src.core.network import NetworkManager, ResourceNotFoundError
 from src.scrapers.base import AppMetadata, BaseScraper, DownloadResult, ScraperError, _parse_html
 
 _DEFAULT_ARCH: frozenset[str] = frozenset({"arm64-v8a, armeabi-v7a, x86_64", "arm64-v8a, armeabi-v7a, x86, x86_64", "arm64-v8a, armeabi-v7a"})
+
 
 class UptodownError(ScraperError):
     pass
@@ -31,7 +37,12 @@ class UptodownScraper(BaseScraper):
             pkg_html = self.net.get(url)
 
         soup_pkg = _parse_html(pkg_html)
-        
+        th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
+        if th and (td := th.find_next_sibling("td")):
+            pkg_name = td.get_text(strip=True)
+        else:
+            raise UptodownError("Package name not found")
+
         detail_app = soup_pkg.select_one("#detail-app-name")
         if not detail_app or "data-code" not in detail_app.attrs:
             raise UptodownError("App data-code not found")
@@ -40,32 +51,13 @@ class UptodownScraper(BaseScraper):
         self._datacode_cache[url] = data_code
 
         versions = []
-        api_pkg_name = None
         try:
             payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/1"))
             for entry in payload.get("data", []):
                 if v := entry.get("version"):
                     versions.append(str(v))
-                if not api_pkg_name and entry.get("packagename"):
-                    api_pkg_name = entry.get("packagename")
         except Exception:
             raise UptodownError("Failed to fetch versions from API")
-
-        pkg_name = None
-        th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
-        if th and (td := th.find_next_sibling("td")):
-            pkg_name = td.get_text(strip=True)
-            
-        if not pkg_name:
-            pkg_name = api_pkg_name
-
-        if not pkg_name:
-            match = re.search(r'play\.google\.com/store/apps/details\?id=([a-zA-Z0-9_.]+)', pkg_html)
-            if match:
-                pkg_name = match.group(1)
-
-        if not pkg_name:
-            raise UptodownError("Package name not found")
 
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
@@ -76,13 +68,12 @@ class UptodownScraper(BaseScraper):
 
         data_code = self._datacode_cache.get(url)
         if not data_code:
-            try:
-                soup_main = _parse_html(self.net.get(url))
-                detail_app = soup_main.select_one("#detail-app-name")
-                data_code = str(detail_app["data-code"])
-                self._datacode_cache[url] = data_code
-            except Exception:
+            soup_main = _parse_html(self.net.get(url))
+            detail_app = soup_main.select_one("#detail-app-name")
+            if not detail_app or "data-code" not in detail_app.attrs:
                 raise UptodownError("App data-code not found")
+            data_code = str(detail_app["data-code"])
+            self._datacode_cache[url] = data_code
 
         version_url_data = self._find_version_url(url, data_code, version)
         ver_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
@@ -99,30 +90,28 @@ class UptodownScraper(BaseScraper):
         dl_btn = soup_ver.select_one("#detail-download-button")
         
         if dl_btn:
-            dl_url = dl_btn.get("data-url")
-            if dl_url:
-                if dl_url.startswith("http"):
-                    raise UptodownError("Uptodown redirects to external link, APK not hosted here.")
-                elif len(dl_url) > 10 and dl_url != "apps":
-                    final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+            dl_url = dl_btn.get("data-url", "").strip()
+            if dl_url.startswith("http"):
+                pass # Ignore external links
+            elif len(dl_url) > 10 and dl_url != "apps":
+                final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
             else:
-                href = dl_btn.get("href")
-                if href and href.startswith("http") and "dw.uptodown" not in href:
-                    raise UptodownError("Uptodown redirects to external link, APK not hosted here.")
-                final_url = href
+                href = dl_btn.get("href", "").strip()
+                if "dw.uptodown" in href:
+                    final_url = href
 
+        # Strict Regex Fallback: Only allows alphanumeric hashes (ignores URLs with / or :)
         if not final_url:
-            match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[^\s"\'<>]+)', resp)
+            match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[a-zA-Z0-9_\-]{20,})', resp)
             if match:
                 final_url = match.group(1)
             else:
-                # Use strict alphanumeric matching to ignore URLs
-                match = re.search(r'data-url=["\']([a-zA-Z0-9_\-]{20,})["\']', resp)
+                match = re.search(r'data-url=["\']([a-zA-Z0-9_\-]{40,})["\']', resp)
                 if match:
                     final_url = f"https://dw.uptodown.com/dwn/{match.group(1)}"
 
         if not final_url:
-            raise UptodownError("Download URL attribute not found on button or in HTML")
+            raise UptodownError("Download URL attribute not found or APK is externally hosted")
 
         out_path = dest.with_suffix(".apkm") if is_bundle else dest
         self.net.download(final_url, out_path)
