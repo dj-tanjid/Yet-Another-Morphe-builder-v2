@@ -17,7 +17,7 @@ from curl_cffi.requests import exceptions as req_exc
 from src.core.config import TEMP_DIR
 from src.core.logger import epr
 
-_RETRY_DELAYS = (3, 5, 8)
+_RETRY_DELAYS = (2, 4, 6)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 _BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110")
 
@@ -33,7 +33,7 @@ def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
 
 def _retry_sleep(attempt: int) -> None:
     if attempt <= len(_RETRY_DELAYS):
-        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.5))
+        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0.5, 1.5))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code in (404, 410):
@@ -91,13 +91,15 @@ class NetworkManager:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
         except ImportError:
-            epr("Playwright/Stealth not installed. Add them to dependencies for CF Bypass.")
             return False
 
         epr("Initiating Playwright Stealth headless bypass...")
         try:
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+                browser = p.chromium.launch(headless=True, args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-gpu",
+                ])
                 context = browser.new_context(
                     viewport={"width": 1920, "height": 1080},
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -107,11 +109,24 @@ class NetworkManager:
                 page.goto(url, wait_until="domcontentloaded")
 
                 if "Just a moment" in page.title() or "cf-browser-verification" in page.content():
-                    epr("Cloudflare challenge hit. Waiting for clearance...")
-                    page.wait_for_function("document.title !== 'Just a moment...'", timeout=45000)
-                    page.wait_for_timeout(2000)
+                    epr("Cloudflare challenge hit. Attempting interactive Turnstile bypass...")
+                    # Attempt to physically click the Cloudflare Turnstile checkbox
+                    try:
+                        frame = page.frame_locator('iframe[src*="cloudflare"]').first
+                        if frame:
+                            checkbox = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
+                            checkbox.click(timeout=3000)
+                    except Exception:
+                        pass
+                    
+                    # Cut timeout down drastically to 12s so it doesn't hang the runner if CF blocks the IP permanently
+                    try:
+                        page.wait_for_function("document.title !== 'Just a moment...'", timeout=12000)
+                        page.wait_for_timeout(1000)
+                    except Exception:
+                        epr("Playwright timeout exceeded, moving on.")
                 
-                # Extract cleared cookies and inject into fast downloader
+                # Extract cleared cookies
                 for c in context.cookies():
                     self.session.cookies.set(c["name"], c["value"], domain=c["domain"])
                 
@@ -127,7 +142,6 @@ class NetworkManager:
 
     def _rotate_browser(self, url: str) -> None:
         self.session.close()
-        # Attempt Playwright bypass first. If it fails or isn't installed, just rotate curl_cffi profile.
         if not self._bypass_cloudflare_with_playwright(url):
             self._current_browser = random.choice([b for b in _BROWSERS if b != self._current_browser])
             self.session = requests.Session(impersonate=self._current_browser)
@@ -138,8 +152,8 @@ class NetworkManager:
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                    time.sleep(random.uniform(1.0, 2.5))
-                    resp = self.session.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
+                    time.sleep(random.uniform(0.5, 1.5))
+                    resp = self.session.get(url, timeout=(10, 20), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
                     self._rotate_browser(url)
@@ -172,7 +186,7 @@ class NetworkManager:
             for attempt in range(1, _MAX_ATTEMPTS + 1):
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                        time.sleep(random.uniform(1.0, 3.0))
+                        time.sleep(random.uniform(0.5, 1.5))
                         resp = self.session.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
