@@ -108,13 +108,20 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Install Playwright & Xvfb for Cloudflare Bypass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          uv pip install playwright playwright-stealth
+          uv run playwright install --with-deps chromium
+
       - name: Build APKs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
-        run: uv run main.py ${{ matrix.id }} ${{ matrix.arch }}
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" uv run main.py ${{ matrix.id }} ${{ matrix.arch }}
 
       - name: Upload APKs to draft release
         if: always()
