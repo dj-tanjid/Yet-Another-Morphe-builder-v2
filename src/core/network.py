@@ -1,5 +1,6 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
+# Copyright (C) 2026 TanJid Creations
 # 
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
@@ -23,8 +24,9 @@ from curl_cffi.requests import exceptions as req_exc
 
 from src.core.logger import epr
 
-_RETRY_DELAYS = (2, 4)
+_RETRY_DELAYS = (2, 4, 6)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
+_BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110")
 
 
 class NetworkError(Exception):
@@ -39,13 +41,13 @@ def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
 
 def _retry_sleep(attempt: int) -> None:
     if attempt <= len(_RETRY_DELAYS):
-        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0, 1))
+        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0.5, 2.0))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code == 404:
         raise ResourceNotFoundError(f"Not found (404): {url}")
 
-    if resp.status_code == 403 or resp.status_code >= 500:
+    if resp.status_code in (403, 503) or resp.status_code >= 500:
         epr(f"HTTP {resp.status_code} for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
         return True
 
@@ -55,7 +57,8 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
 
 class NetworkManager:
     def __init__(self) -> None:
-        self.session = requests.Session(impersonate="chrome146")
+        self._current_browser = random.choice(_BROWSERS)
+        self.session = requests.Session(impersonate=self._current_browser)
         token = os.getenv("GITHUB_TOKEN")
         self._gh_headers: dict[str, str] = {"Authorization": f"token {token}"} if token else {}
         self._domain_locks: dict[str, threading.Lock] = {}
@@ -63,16 +66,24 @@ class NetworkManager:
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
 
+    def _rotate_browser(self):
+        """Rotates the underlying TLS fingerprint to bypass active Cloudflare blocks."""
+        self.session.close()
+        self._current_browser = random.choice([b for b in _BROWSERS if b != self._current_browser])
+        self.session = requests.Session(impersonate=self._current_browser)
+
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
         last_exc: Exception | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                    time.sleep(0.5)
-                    resp = self.session.get(url, timeout=(5, 10), allow_redirects=True, headers=headers, verify=True)
+                    time.sleep(random.uniform(0.5, 1.5))
+                    resp = self.session.get(url, timeout=(5, 15), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
+                    if resp.status_code in (403, 503):
+                        self._rotate_browser()
                     _retry_sleep(attempt)
                     continue
 
@@ -99,10 +110,12 @@ class NetworkManager:
             for attempt in range(1, _MAX_ATTEMPTS + 1):
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                        time.sleep(0.5)
+                        time.sleep(random.uniform(0.5, 1.5))
                         resp = self.session.get(url, timeout=(5, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
+                        if resp.status_code in (403, 503):
+                            self._rotate_browser()
                         _retry_sleep(attempt)
                         continue
 
@@ -123,3 +136,4 @@ class NetworkManager:
 
     def __exit__(self, *_: object) -> None:
         self.session.close()
+        
