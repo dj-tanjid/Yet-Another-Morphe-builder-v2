@@ -1,5 +1,6 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
+# Copyright (C) 2026 TanJid Creations
 # 
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
@@ -25,16 +26,24 @@ from curl_cffi.requests import exceptions as req_exc
 from src.core.config import TEMP_DIR
 from src.core.logger import epr
 
-_RETRY_DELAYS = (2, 4, 6)
+_RETRY_DELAYS = (3, 6, 9)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
-_BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110")
 
+# Updated browser list using the most robust recent impersonations available in curl_cffi
+_BROWSERS = (
+    "chrome124", 
+    "chrome120", 
+    "safari17_0", 
+    "safari15_5", 
+    "edge101", 
+    "chrome116"
+)
 
 class NetworkError(Exception):
     pass
 
 class ResourceNotFoundError(NetworkError):
-    """Raised when a remote resource returns HTTP 404 or 410."""
+    pass
 
 def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
     with mu:
@@ -42,7 +51,7 @@ def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
 
 def _retry_sleep(attempt: int) -> None:
     if attempt <= len(_RETRY_DELAYS):
-        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0.5, 1.5))
+        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.5))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code in (404, 410):
@@ -65,7 +74,7 @@ class NetworkManager:
         self.cookie_jar = TEMP_DIR / "cookies.json"
         self.browser_cfg = TEMP_DIR / "browser.txt"
         self._current_browser = "chrome124"
-        self.session = requests.Session(impersonate=self._current_browser)
+        self.session = self._create_session(self._current_browser)
         self._load_state()
         
         token = os.getenv("GITHUB_TOKEN")
@@ -74,6 +83,20 @@ class NetworkManager:
         self._domain_mu = threading.Lock()
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
+
+    def _create_session(self, browser: str) -> requests.Session:
+        """Create a fresh session with proper headers."""
+        sess = requests.Session(impersonate=browser)
+        # Adding an Accept-Language header drastically lowers CF bot scores
+        sess.headers.update({
+            "Accept-Language": "en-US,en;q=0.9",
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1"
+        })
+        return sess
 
     def _save_state(self) -> None:
         try:
@@ -87,7 +110,8 @@ class NetworkManager:
         try:
             if self.browser_cfg.exists() and self.cookie_jar.exists():
                 self._current_browser = self.browser_cfg.read_text().strip()
-                self.session = requests.Session(impersonate=self._current_browser)
+                # Must cleanly overwrite self.session to ensure internal CFFI state is clean
+                self.session = self._create_session(self._current_browser)
                 cookies = json.loads(self.cookie_jar.read_text())
                 for k, v in cookies.items():
                     self.session.cookies.set(k, v)
@@ -103,15 +127,22 @@ class NetworkManager:
         except Exception:
             pass
 
-    def _rotate_browser(self) -> None:
-        """Rotates TLS fingerprint and re-creates session."""
+    def _rotate_browser(self, url: str) -> None:
+        """Fully tears down the blocked session and creates a clean one."""
         try:
-            self.session.close()
+            # We must explicitly close to free sockets before dereferencing
+            self.session.close() 
         except Exception:
             pass
+            
         self._clear_state()
-        self._current_browser = random.choice([b for b in _BROWSERS if b != self._current_browser])
-        self.session = requests.Session(impersonate=self._current_browser)
+        
+        # Pick a strictly different browser to force a new TLS fingerprint
+        available_browsers = [b for b in _BROWSERS if b != self._current_browser]
+        self._current_browser = random.choice(available_browsers)
+        
+        # Reinitialize self.session entirely
+        self.session = self._create_session(self._current_browser)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
@@ -119,11 +150,11 @@ class NetworkManager:
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                    time.sleep(random.uniform(0.5, 1.5))
-                    resp = self.session.get(url, timeout=(10, 20), allow_redirects=True, headers=headers, verify=True)
+                    time.sleep(random.uniform(1.0, 2.5))
+                    resp = self.session.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
-                    self._rotate_browser()
+                    self._rotate_browser(url)
                     _retry_sleep(attempt)
                     continue
 
@@ -134,6 +165,8 @@ class NetworkManager:
             except req_exc.RequestException as exc:
                 last_exc = exc
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
+                # Ensure the broken socket session is destroyed if CFFI throws an internal closed-session error
+                self._rotate_browser(url)
                 _retry_sleep(attempt)
         raise NetworkError(f"Request failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
 
@@ -153,11 +186,11 @@ class NetworkManager:
             for attempt in range(1, _MAX_ATTEMPTS + 1):
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                        time.sleep(random.uniform(0.5, 1.5))
+                        time.sleep(random.uniform(1.0, 3.0))
                         resp = self.session.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
-                        self._rotate_browser()
+                        self._rotate_browser(url)
                         _retry_sleep(attempt)
                         continue
 
@@ -174,6 +207,7 @@ class NetworkManager:
                     tmp.unlink(missing_ok=True)
                     last_exc = exc
                     epr(f"Download error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
+                    self._rotate_browser(url)
                     _retry_sleep(attempt)
             raise NetworkError(f"Download failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
 
