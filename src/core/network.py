@@ -25,10 +25,10 @@ from curl_cffi.requests import exceptions as req_exc
 from src.core.config import TEMP_DIR
 from src.core.logger import epr
 
-# Extended delays to bleed out rate-limits on consecutive 403s
-_RETRY_DELAYS = (3, 6, 9)
+# Extended delays and attempt limits to exhaust rate-limits on consecutive CF blocks
+_RETRY_DELAYS = (3, 6, 9, 12, 15)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
-_BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110")
+_BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110", "edge101", "safari17_0")
 
 
 class NetworkError(Exception):
@@ -49,8 +49,13 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code in (404, 410):
         raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
 
-    if resp.status_code in (403, 503) or resp.status_code >= 500:
-        epr(f"HTTP {resp.status_code} for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
+    # Cloudflare can return HTTP 200 but serve a challenge page
+    is_cf_challenge = False
+    if resp.status_code < 400 and resp.text:
+        is_cf_challenge = "cf-browser-verification" in resp.text or "Just a moment" in resp.text
+
+    if resp.status_code in (403, 503) or resp.status_code >= 500 or is_cf_challenge:
+        epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
         return True
 
     if resp.status_code >= 400:
@@ -61,7 +66,7 @@ class NetworkManager:
     def __init__(self) -> None:
         self.cookie_jar = TEMP_DIR / "cookies.json"
         self.browser_cfg = TEMP_DIR / "browser.txt"
-        self._current_browser = "chrome124" # Default robust impersonation
+        self._current_browser = "chrome124"
         self.session = requests.Session(impersonate=self._current_browser)
         self._load_state()
         
@@ -114,11 +119,10 @@ class NetworkManager:
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
                     time.sleep(random.uniform(1.0, 2.5))
-                    resp = self.session.get(url, timeout=(10, 20), allow_redirects=True, headers=headers, verify=True)
+                    resp = self.session.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
-                    if resp.status_code in (403, 503):
-                        self._rotate_browser()
+                    self._rotate_browser()
                     _retry_sleep(attempt)
                     continue
 
@@ -150,8 +154,7 @@ class NetworkManager:
                         resp = self.session.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
-                        if resp.status_code in (403, 503):
-                            self._rotate_browser()
+                        self._rotate_browser()
                         _retry_sleep(attempt)
                         continue
 
