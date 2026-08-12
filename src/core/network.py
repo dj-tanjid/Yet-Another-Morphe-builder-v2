@@ -1,6 +1,5 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
-# Copyright (C) 2026 TanJid Creations
 # 
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
@@ -12,6 +11,7 @@
 # See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
+import json
 import os
 import random
 import threading
@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 from curl_cffi import requests
 from curl_cffi.requests import exceptions as req_exc
 
+from src.core.config import TEMP_DIR
 from src.core.logger import epr
 
 _RETRY_DELAYS = (2, 4, 6)
@@ -33,7 +34,7 @@ class NetworkError(Exception):
     pass
 
 class ResourceNotFoundError(NetworkError):
-    """Raised when a remote resource returns HTTP 404."""
+    """Raised when a remote resource returns HTTP 404 or 410."""
 
 def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
     with mu:
@@ -44,8 +45,8 @@ def _retry_sleep(attempt: int) -> None:
         time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0.5, 2.0))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
-    if resp.status_code == 404:
-        raise ResourceNotFoundError(f"Not found (404): {url}")
+    if resp.status_code in (404, 410):
+        raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
 
     if resp.status_code in (403, 503) or resp.status_code >= 500:
         epr(f"HTTP {resp.status_code} for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
@@ -57,8 +58,12 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
 
 class NetworkManager:
     def __init__(self) -> None:
+        self.cookie_jar = TEMP_DIR / "cookies.json"
+        self.browser_cfg = TEMP_DIR / "browser.txt"
         self._current_browser = random.choice(_BROWSERS)
         self.session = requests.Session(impersonate=self._current_browser)
+        self._load_state()
+        
         token = os.getenv("GITHUB_TOKEN")
         self._gh_headers: dict[str, str] = {"Authorization": f"token {token}"} if token else {}
         self._domain_locks: dict[str, threading.Lock] = {}
@@ -66,9 +71,38 @@ class NetworkManager:
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
 
-    def _rotate_browser(self):
-        """Rotates the underlying TLS fingerprint to bypass active Cloudflare blocks."""
+    def _save_state(self) -> None:
+        try:
+            TEMP_DIR.mkdir(parents=True, exist_ok=True)
+            self.browser_cfg.write_text(self._current_browser)
+            self.cookie_jar.write_text(json.dumps(self.session.cookies.get_dict()))
+        except Exception:
+            pass
+
+    def _load_state(self) -> None:
+        try:
+            if self.browser_cfg.exists() and self.cookie_jar.exists():
+                self._current_browser = self.browser_cfg.read_text().strip()
+                self.session = requests.Session(impersonate=self._current_browser)
+                cookies = json.loads(self.cookie_jar.read_text())
+                for k, v in cookies.items():
+                    self.session.cookies.set(k, v)
+        except Exception:
+            pass
+
+    def _clear_state(self) -> None:
+        try:
+            if self.browser_cfg.exists(): 
+                self.browser_cfg.unlink()
+            if self.cookie_jar.exists(): 
+                self.cookie_jar.unlink()
+        except Exception:
+            pass
+
+    def _rotate_browser(self) -> None:
+        """Clears blocked session data and rotates the underlying TLS fingerprint."""
         self.session.close()
+        self._clear_state()
         self._current_browser = random.choice([b for b in _BROWSERS if b != self._current_browser])
         self.session = requests.Session(impersonate=self._current_browser)
 
@@ -87,6 +121,7 @@ class NetworkManager:
                     _retry_sleep(attempt)
                     continue
 
+                self._save_state()
                 return resp.text
             except req_exc.RequestException as exc:
                 last_exc = exc
@@ -122,6 +157,8 @@ class NetworkManager:
                     with tmp.open("wb") as fh:
                         for chunk in resp.iter_content(chunk_size=1048576):
                             fh.write(chunk)
+                    
+                    self._save_state()
                     tmp.replace(dest)
                     return
                 except req_exc.RequestException as exc:
@@ -136,4 +173,3 @@ class NetworkManager:
 
     def __exit__(self, *_: object) -> None:
         self.session.close()
-        
