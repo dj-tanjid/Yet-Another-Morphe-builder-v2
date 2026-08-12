@@ -90,27 +90,34 @@ class UptodownScraper(BaseScraper):
             soup_ver = _parse_html(resp)
 
         final_url = None
-        dl_btn = soup_ver.select_one("#detail-download-button")
         
-        if dl_btn:
-            dl_url = dl_btn.get("data-url")
-            if dl_url:
-                final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
-            else:
-                final_url = dl_btn.get("href")
-
-        # Aggressive Fallback: Regex scan with strict length check to avoid capturing '/apps'
+        # 1. Search DOM for data-url attribute
+        for el in soup_ver.find_all(attrs={"data-url": True}):
+            val = el.get("data-url")
+            if val and val != "apps" and len(val) > 10:
+                final_url = f"https://dw.uptodown.com/dwn/{val}"
+                break
+                
+        # 2. Search DOM for href pointing to dw.uptodown.com
         if not final_url:
-            match = re.search(r'(https://dw\.uptodown\.com/dwn/[A-Za-z0-9_-]{40,})', resp)
+            for el in soup_ver.find_all("a", href=True):
+                href = el.get("href")
+                if "dw.uptodown.com/dwn/" in href:
+                    final_url = href
+                    break
+                    
+        # 3. Regex Fallback
+        if not final_url:
+            match = re.search(r'(https://dw\.uptodown\.com/dwn/[a-zA-Z0-9_\-]{10,})', resp)
             if match:
                 final_url = match.group(1)
             else:
-                match = re.search(r'data-url=["\']([A-Za-z0-9_-]{40,})["\']', resp)
+                match = re.search(r'data-url=["\']([a-zA-Z0-9_\-]{10,})["\']', resp)
                 if match:
                     final_url = f"https://dw.uptodown.com/dwn/{match.group(1)}"
 
         if not final_url:
-            raise UptodownError("Download URL attribute not found on button")
+            raise UptodownError("Download URL attribute not found on button or in HTML")
 
         out_path = dest.with_suffix(".apkm") if is_bundle else dest
         self.net.download(final_url, out_path)
