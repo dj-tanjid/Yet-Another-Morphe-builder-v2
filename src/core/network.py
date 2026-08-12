@@ -1,6 +1,14 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
-# Copyright (C) 2026 TanJid Creations
+# 
+# DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
+# This file is part of uni-apks.
+# Canonical source: https://github.com/krvstek/uni-apks
+#
+# Licensed under the GNU GPLv3. You may modify this file,
+# but you MUST keep this original copyright notice intact
+# and prominently state any changes made.
+# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
 import json
@@ -21,11 +29,12 @@ _RETRY_DELAYS = (2, 4, 6)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 _BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110")
 
+
 class NetworkError(Exception):
     pass
 
 class ResourceNotFoundError(NetworkError):
-    pass
+    """Raised when a remote resource returns HTTP 404 or 410."""
 
 def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
     with mu:
@@ -85,66 +94,24 @@ class NetworkManager:
         except Exception:
             pass
 
-    def _bypass_cloudflare_with_playwright(self, url: str) -> bool:
-        """Boot an invisible browser to solve Cloudflare Turnstile visually."""
+    def _clear_state(self) -> None:
         try:
-            from playwright.sync_api import sync_playwright
-            from playwright_stealth import Stealth
-        except ImportError:
-            return False
+            if self.browser_cfg.exists(): 
+                self.browser_cfg.unlink()
+            if self.cookie_jar.exists(): 
+                self.cookie_jar.unlink()
+        except Exception:
+            pass
 
-        epr("Initiating Playwright Stealth headless bypass...")
+    def _rotate_browser(self) -> None:
+        """Rotates TLS fingerprint and re-creates session."""
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True, args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-gpu",
-                ])
-                context = browser.new_context(
-                    viewport={"width": 1920, "height": 1080},
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                )
-                Stealth().apply_stealth_sync(context)
-                page = context.new_page()
-                page.goto(url, wait_until="domcontentloaded")
-
-                if "Just a moment" in page.title() or "cf-browser-verification" in page.content():
-                    epr("Cloudflare challenge hit. Attempting interactive Turnstile bypass...")
-                    # Attempt to physically click the Cloudflare Turnstile checkbox
-                    try:
-                        frame = page.frame_locator('iframe[src*="cloudflare"]').first
-                        if frame:
-                            checkbox = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
-                            checkbox.click(timeout=3000)
-                    except Exception:
-                        pass
-                    
-                    # Cut timeout down drastically to 12s so it doesn't hang the runner if CF blocks the IP permanently
-                    try:
-                        page.wait_for_function("document.title !== 'Just a moment...'", timeout=12000)
-                        page.wait_for_timeout(1000)
-                    except Exception:
-                        epr("Playwright timeout exceeded, moving on.")
-                
-                # Extract cleared cookies
-                for c in context.cookies():
-                    self.session.cookies.set(c["name"], c["value"], domain=c["domain"])
-                
-                ua = page.evaluate("navigator.userAgent")
-                self.session.headers.update({"User-Agent": ua})
-                
-                browser.close()
-                self._save_state()
-                return True
-        except Exception as e:
-            epr(f"Playwright bypass failed: {e}")
-            return False
-
-    def _rotate_browser(self, url: str) -> None:
-        self.session.close()
-        if not self._bypass_cloudflare_with_playwright(url):
-            self._current_browser = random.choice([b for b in _BROWSERS if b != self._current_browser])
-            self.session = requests.Session(impersonate=self._current_browser)
+            self.session.close()
+        except Exception:
+            pass
+        self._clear_state()
+        self._current_browser = random.choice([b for b in _BROWSERS if b != self._current_browser])
+        self.session = requests.Session(impersonate=self._current_browser)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
@@ -156,7 +123,7 @@ class NetworkManager:
                     resp = self.session.get(url, timeout=(10, 20), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
-                    self._rotate_browser(url)
+                    self._rotate_browser()
                     _retry_sleep(attempt)
                     continue
 
@@ -190,7 +157,7 @@ class NetworkManager:
                         resp = self.session.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
-                        self._rotate_browser(url)
+                        self._rotate_browser()
                         _retry_sleep(attempt)
                         continue
 
@@ -214,4 +181,7 @@ class NetworkManager:
         return self
 
     def __exit__(self, *_: object) -> None:
-        self.session.close()
+        try:
+            self.session.close()
+        except Exception:
+            pass
