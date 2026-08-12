@@ -16,7 +16,7 @@ import json  # noqa: I001
 import re
 from pathlib import Path
 
-from src.core.network import NetworkManager
+from src.core.network import NetworkManager, ResourceNotFoundError
 from src.scrapers.base import AppMetadata, BaseScraper, DownloadResult, ScraperError, _parse_html
 
 _DEFAULT_ARCH: frozenset[str] = frozenset({"arm64-v8a, armeabi-v7a, x86_64", "arm64-v8a, armeabi-v7a, x86, x86_64", "arm64-v8a, armeabi-v7a"})
@@ -31,8 +31,12 @@ class UptodownScraper(BaseScraper):
         self._datacode_cache: dict[str, str] = {}
 
     def fetch_metadata(self, url: str) -> AppMetadata:
-        # Extract Package Name from the /download page
-        pkg_html = self.net.get(f"{url}/download")
+        try:
+            pkg_html = self.net.get(f"{url}/download")
+        except ResourceNotFoundError:
+            # Fallback to main page if /download is 410 Gone or 404
+            pkg_html = self.net.get(url)
+
         soup_pkg = _parse_html(pkg_html)
         th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
         if th and (td := th.find_next_sibling("td")):
@@ -40,13 +44,10 @@ class UptodownScraper(BaseScraper):
         else:
             raise UptodownError("Package name not found")
 
-        # Extract data-code to query the API (fallback to main url if /download lacks it)
+        # Extract data-code to query the API
         detail_app = soup_pkg.select_one("#detail-app-name")
         if not detail_app or "data-code" not in detail_app.attrs:
-            soup_main = _parse_html(self.net.get(url))
-            detail_app = soup_main.select_one("#detail-app-name")
-            if not detail_app or "data-code" not in detail_app.attrs:
-                raise UptodownError("App data-code not found")
+            raise UptodownError("App data-code not found")
                 
         data_code = str(detail_app["data-code"])
         self._datacode_cache[url] = data_code
@@ -89,7 +90,9 @@ class UptodownScraper(BaseScraper):
 
         dl_btn = soup_ver.select_one("#detail-download-button")
         if not dl_btn:
-            raise UptodownError("Download button not found on page")
+            dl_btn = soup_ver.find("button", class_=re.compile("download")) or soup_ver.find("a", class_=re.compile("download"))
+            if not dl_btn:
+                raise UptodownError("Download button not found on page")
             
         dl_url = dl_btn.get("data-url")
         if dl_url:
@@ -97,6 +100,12 @@ class UptodownScraper(BaseScraper):
         else:
             final_url = dl_btn.get("href")
             
+        # Try finding URL in javascript onclick events as a last resort
+        if not final_url:
+            onclick = dl_btn.get("onclick", "")
+            if "href=" in onclick:
+                final_url = onclick.split("href=")[-1].strip("'\" ")
+
         if not final_url:
             raise UptodownError("Download URL attribute not found on button")
 
@@ -154,12 +163,9 @@ class UptodownScraper(BaseScraper):
         if not candidates:
             raise UptodownError("No matching variant found")
 
-        # Prioritize standalone APKs first
         for file_id, is_bundle in candidates:
             if not is_bundle:
                 return self.net.get(f"{url}/download/{file_id}-x"), False
 
-        # Fall back to split bundle (xapk) if no standalone APK exists
         file_id, is_bundle = candidates[0]
         return self.net.get(f"{url}/download/{file_id}-x"), is_bundle
-        
