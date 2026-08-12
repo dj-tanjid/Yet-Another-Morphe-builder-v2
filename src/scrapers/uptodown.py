@@ -38,12 +38,7 @@ class UptodownScraper(BaseScraper):
             pkg_html = self.net.get(url)
 
         soup_pkg = _parse_html(pkg_html)
-        th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
-        if th and (td := th.find_next_sibling("td")):
-            pkg_name = td.get_text(strip=True)
-        else:
-            raise UptodownError("Package name not found")
-
+        
         # Extract data-code to query the API
         detail_app = soup_pkg.select_one("#detail-app-name")
         if not detail_app or "data-code" not in detail_app.attrs:
@@ -54,13 +49,33 @@ class UptodownScraper(BaseScraper):
 
         # Query the JSON API for the first page of versions
         versions = []
+        api_pkg_name = None
         try:
             payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/1"))
             for entry in payload.get("data", []):
                 if v := entry.get("version"):
                     versions.append(str(v))
+                if not api_pkg_name and entry.get("packagename"):
+                    api_pkg_name = entry.get("packagename")
         except Exception:
             raise UptodownError("Failed to fetch versions from API")
+
+        # Try to find package name in HTML first
+        pkg_name = None
+        th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
+        if th and (td := th.find_next_sibling("td")):
+            pkg_name = td.get_text(strip=True)
+            
+        if not pkg_name:
+            pkg_name = api_pkg_name
+
+        if not pkg_name:
+            match = re.search(r'play\.google\.com/store/apps/details\?id=([a-zA-Z0-9_.]+)', pkg_html)
+            if match:
+                pkg_name = match.group(1)
+
+        if not pkg_name:
+            raise UptodownError("Package name not found")
 
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
@@ -71,12 +86,13 @@ class UptodownScraper(BaseScraper):
 
         data_code = self._datacode_cache.get(url)
         if not data_code:
-            soup_main = _parse_html(self.net.get(url))
-            detail_app = soup_main.select_one("#detail-app-name")
-            if not detail_app or "data-code" not in detail_app.attrs:
+            try:
+                soup_main = _parse_html(self.net.get(url))
+                detail_app = soup_main.select_one("#detail-app-name")
+                data_code = str(detail_app["data-code"])
+                self._datacode_cache[url] = data_code
+            except Exception:
                 raise UptodownError("App data-code not found")
-            data_code = str(detail_app["data-code"])
-            self._datacode_cache[url] = data_code
 
         version_url_data = self._find_version_url(url, data_code, version)
         ver_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
@@ -90,29 +106,22 @@ class UptodownScraper(BaseScraper):
             soup_ver = _parse_html(resp)
 
         final_url = None
+        dl_btn = soup_ver.select_one("#detail-download-button")
         
-        # 1. Search DOM for data-url attribute
-        for el in soup_ver.find_all(attrs={"data-url": True}):
-            val = el.get("data-url")
-            if val and val != "apps" and len(val) > 10:
-                final_url = f"https://dw.uptodown.com/dwn/{val}"
-                break
-                
-        # 2. Search DOM for href pointing to dw.uptodown.com
+        if dl_btn:
+            dl_url = dl_btn.get("data-url")
+            if dl_url and len(dl_url) > 10 and dl_url != "apps":
+                final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+            else:
+                final_url = dl_btn.get("href")
+
+        # Aggressive Fallback: Regex scan for Uptodown CDN download links (.net or .com)
         if not final_url:
-            for el in soup_ver.find_all("a", href=True):
-                href = el.get("href")
-                if "dw.uptodown.com/dwn/" in href:
-                    final_url = href
-                    break
-                    
-        # 3. Regex Fallback
-        if not final_url:
-            match = re.search(r'(https://dw\.uptodown\.com/dwn/[a-zA-Z0-9_\-]{10,})', resp)
+            match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[^\s"\'<>]+)', resp)
             if match:
                 final_url = match.group(1)
             else:
-                match = re.search(r'data-url=["\']([a-zA-Z0-9_\-]{10,})["\']', resp)
+                match = re.search(r'data-url=["\']([^"\']{20,})["\']', resp)
                 if match:
                     final_url = f"https://dw.uptodown.com/dwn/{match.group(1)}"
 
