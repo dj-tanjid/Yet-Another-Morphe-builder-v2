@@ -5,14 +5,9 @@
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
 # Canonical source: https://github.com/krvstek/uni-apks
-#
-# Licensed under the GNU GPLv3. You may modify this file,
-# but you MUST keep this original copyright notice intact
-# and prominently state any changes made.
-# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
-import json  # noqa: I001
+import json
 import re
 from pathlib import Path
 
@@ -20,7 +15,6 @@ from src.core.network import NetworkManager, ResourceNotFoundError
 from src.scrapers.base import AppMetadata, BaseScraper, DownloadResult, ScraperError, _parse_html
 
 _DEFAULT_ARCH: frozenset[str] = frozenset({"arm64-v8a, armeabi-v7a, x86_64", "arm64-v8a, armeabi-v7a, x86, x86_64", "arm64-v8a, armeabi-v7a"})
-
 
 class UptodownError(ScraperError):
     pass
@@ -34,12 +28,10 @@ class UptodownScraper(BaseScraper):
         try:
             pkg_html = self.net.get(f"{url}/download")
         except ResourceNotFoundError:
-            # Fallback to main page if /download is 410 Gone or 404
             pkg_html = self.net.get(url)
 
         soup_pkg = _parse_html(pkg_html)
         
-        # Extract data-code to query the API
         detail_app = soup_pkg.select_one("#detail-app-name")
         if not detail_app or "data-code" not in detail_app.attrs:
             raise UptodownError("App data-code not found")
@@ -47,7 +39,6 @@ class UptodownScraper(BaseScraper):
         data_code = str(detail_app["data-code"])
         self._datacode_cache[url] = data_code
 
-        # Query the JSON API for the first page of versions
         versions = []
         api_pkg_name = None
         try:
@@ -60,7 +51,6 @@ class UptodownScraper(BaseScraper):
         except Exception:
             raise UptodownError("Failed to fetch versions from API")
 
-        # Try to find package name in HTML first
         pkg_name = None
         th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
         if th and (td := th.find_next_sibling("td")):
@@ -110,18 +100,24 @@ class UptodownScraper(BaseScraper):
         
         if dl_btn:
             dl_url = dl_btn.get("data-url")
-            if dl_url and len(dl_url) > 10 and dl_url != "apps":
-                final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+            if dl_url:
+                if dl_url.startswith("http"):
+                    raise UptodownError("Uptodown redirects to external link, APK not hosted here.")
+                elif len(dl_url) > 10 and dl_url != "apps":
+                    final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
             else:
-                final_url = dl_btn.get("href")
+                href = dl_btn.get("href")
+                if href and href.startswith("http") and "dw.uptodown" not in href:
+                    raise UptodownError("Uptodown redirects to external link, APK not hosted here.")
+                final_url = href
 
-        # Aggressive Fallback: Regex scan for Uptodown CDN download links (.net or .com)
         if not final_url:
             match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[^\s"\'<>]+)', resp)
             if match:
                 final_url = match.group(1)
             else:
-                match = re.search(r'data-url=["\']([^"\']{20,})["\']', resp)
+                # Use strict alphanumeric matching to ignore URLs
+                match = re.search(r'data-url=["\']([a-zA-Z0-9_\-]{20,})["\']', resp)
                 if match:
                     final_url = f"https://dw.uptodown.com/dwn/{match.group(1)}"
 
@@ -138,7 +134,6 @@ class UptodownScraper(BaseScraper):
             data = payload.get("data")
             if not data:
                 break
-
             for entry in data:
                 if entry.get("version") != version:
                     continue
@@ -157,26 +152,17 @@ class UptodownScraper(BaseScraper):
         candidates: list[tuple[str, bool]] = []
         node_arch = ""
         for child in content.children:
-            if not getattr(child, "name", None):
-                continue
-
+            if not getattr(child, "name", None): continue
             if "variant" not in child.get("class", []):
                 node_arch = child.get_text(strip=True)
                 continue
-
-            if not node_arch or node_arch not in apparch:
-                continue
-
+            if not node_arch or node_arch not in apparch: continue
             file_type_tag = child.select_one(".v-file > span")
             is_bundle = file_type_tag.get_text(strip=True) == "xapk" if file_type_tag else False
             v_report = child.select_one(".v-report")
-            if v_report is None:
-                continue
-
+            if v_report is None: continue
             file_id = v_report.get("data-file-id")
-            if file_id is None:
-                continue
-
+            if file_id is None: continue
             candidates.append((file_id, is_bundle))
 
         if not candidates:
