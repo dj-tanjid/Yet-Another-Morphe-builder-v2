@@ -82,29 +82,32 @@ class UptodownScraper(BaseScraper):
         ver_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
         is_bundle = version_url_data.get("kindFile") == "xapk"
         
-        soup_ver = _parse_html(self.net.get(ver_url))
+        resp = self.net.get(ver_url)
+        soup_ver = _parse_html(resp)
         btn_variants = soup_ver.select_one(".button.variants")
         if btn_variants and (data_version := btn_variants.get("data-version")):
             resp, is_bundle = self._pick_variant_file(url, data_code, str(data_version), apparch)
             soup_ver = _parse_html(resp)
 
+        final_url = None
         dl_btn = soup_ver.select_one("#detail-download-button")
-        if not dl_btn:
-            dl_btn = soup_ver.find("button", class_=re.compile("download")) or soup_ver.find("a", class_=re.compile("download"))
-            if not dl_btn:
-                raise UptodownError("Download button not found on page")
-            
-        dl_url = dl_btn.get("data-url")
-        if dl_url:
-            final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
-        else:
-            final_url = dl_btn.get("href")
-            
-        # Try finding URL in javascript onclick events as a last resort
+        
+        if dl_btn:
+            dl_url = dl_btn.get("data-url")
+            if dl_url:
+                final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+            else:
+                final_url = dl_btn.get("href")
+
+        # Aggressive Fallback: Regex scan the raw HTML for the download URL or data-url attribute
         if not final_url:
-            onclick = dl_btn.get("onclick", "")
-            if "href=" in onclick:
-                final_url = onclick.split("href=")[-1].strip("'\" ")
+            match = re.search(r'(https://dw\.uptodown\.com/dwn/[^"\']+)', resp)
+            if match:
+                final_url = match.group(1)
+            else:
+                match = re.search(r'data-url=["\']([^"\']+)["\']', resp)
+                if match:
+                    final_url = f"https://dw.uptodown.com/dwn/{match.group(1)}"
 
         if not final_url:
             raise UptodownError("Download URL attribute not found on button")
