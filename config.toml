@@ -246,6 +246,7 @@ uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
 enabled = true
 app-name = "Proton VPN"
 brand = "Paresh"
+version = "5.19.72.0"
 github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/ch.protonvpn.android"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn"
 uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
