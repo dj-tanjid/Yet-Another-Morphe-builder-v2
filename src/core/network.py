@@ -26,7 +26,7 @@ from curl_cffi.requests import exceptions as req_exc
 from src.core.config import TEMP_DIR
 from src.core.logger import epr
 
-_RETRY_DELAYS = (2, 4, 6, 8, 10, 12)
+_RETRY_DELAYS = (3, 6, 9, 12, 15)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 _BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110", "edge101", "safari17_0")
 
@@ -35,7 +35,7 @@ class NetworkError(Exception):
     pass
 
 class ResourceNotFoundError(NetworkError):
-    """Raised when a remote resource returns HTTP 404."""
+    """Raised when a remote resource returns HTTP 404 or 410."""
 
 def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
     with mu:
@@ -46,16 +46,14 @@ def _retry_sleep(attempt: int) -> None:
         time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.5))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
-    if resp.status_code == 404:
-        raise ResourceNotFoundError(f"Not found (404): {url}")
+    if resp.status_code in (404, 410):
+        raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
 
-    # Detect Cloudflare blocks hidden behind 200 OK
     is_cf_challenge = False
     if resp.status_code < 400 and resp.text:
         is_cf_challenge = "cf-browser-verification" in resp.text or "Just a moment" in resp.text
 
-    # Treat 410 as a CF/WAF block to trigger browser rotation instead of instant failure
-    if resp.status_code in (403, 410, 503) or resp.status_code >= 500 or is_cf_challenge:
+    if resp.status_code in (403, 503) or resp.status_code >= 500 or is_cf_challenge:
         epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
         return True
 
@@ -129,12 +127,12 @@ class NetworkManager:
 
                 self._save_state()
                 return resp.text
+            except ResourceNotFoundError:
+                raise
             except req_exc.RequestException as exc:
                 last_exc = exc
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
                 _retry_sleep(attempt)
-        
-        # If it still fails after max attempts, it might genuinely be a deleted 410 page
         raise NetworkError(f"Request failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
 
     def download(self, url: str, dest: Path, headers: dict[str, str] | None = None) -> None:
@@ -168,6 +166,8 @@ class NetworkManager:
                     self._save_state()
                     tmp.replace(dest)
                     return
+                except ResourceNotFoundError:
+                    raise
                 except req_exc.RequestException as exc:
                     tmp.unlink(missing_ok=True)
                     last_exc = exc
