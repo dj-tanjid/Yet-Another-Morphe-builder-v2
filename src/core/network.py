@@ -25,7 +25,8 @@ from curl_cffi.requests import exceptions as req_exc
 from src.core.config import TEMP_DIR
 from src.core.logger import epr
 
-_RETRY_DELAYS = (2, 4, 6)
+# Extended delays to bleed out rate-limits on consecutive 403s
+_RETRY_DELAYS = (3, 6, 9)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 _BROWSERS = ("chrome124", "chrome120", "edge99", "safari15_5", "chrome116", "chrome110")
 
@@ -42,7 +43,7 @@ def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
 
 def _retry_sleep(attempt: int) -> None:
     if attempt <= len(_RETRY_DELAYS):
-        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0.5, 2.0))
+        time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.0))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code in (404, 410):
@@ -60,7 +61,7 @@ class NetworkManager:
     def __init__(self) -> None:
         self.cookie_jar = TEMP_DIR / "cookies.json"
         self.browser_cfg = TEMP_DIR / "browser.txt"
-        self._current_browser = random.choice(_BROWSERS)
+        self._current_browser = "chrome124" # Default robust impersonation
         self.session = requests.Session(impersonate=self._current_browser)
         self._load_state()
         
@@ -112,8 +113,8 @@ class NetworkManager:
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                    time.sleep(random.uniform(0.5, 1.5))
-                    resp = self.session.get(url, timeout=(5, 15), allow_redirects=True, headers=headers, verify=True)
+                    time.sleep(random.uniform(1.0, 2.5))
+                    resp = self.session.get(url, timeout=(10, 20), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
                     if resp.status_code in (403, 503):
@@ -145,8 +146,8 @@ class NetworkManager:
             for attempt in range(1, _MAX_ATTEMPTS + 1):
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
-                        time.sleep(random.uniform(0.5, 1.5))
-                        resp = self.session.get(url, timeout=(5, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
+                        time.sleep(random.uniform(1.0, 2.5))
+                        resp = self.session.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
                         if resp.status_code in (403, 503):
