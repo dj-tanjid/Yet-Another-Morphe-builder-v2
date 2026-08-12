@@ -92,7 +92,7 @@ class UptodownScraper(BaseScraper):
         if dl_btn:
             dl_url = dl_btn.get("data-url", "").strip()
             if dl_url.startswith("http"):
-                pass # Ignore external links
+                pass
             elif len(dl_url) > 10 and dl_url != "apps":
                 final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
             else:
@@ -100,7 +100,6 @@ class UptodownScraper(BaseScraper):
                 if "dw.uptodown" in href:
                     final_url = href
 
-        # Strict Regex Fallback: Only allows alphanumeric hashes (ignores URLs with / or :)
         if not final_url:
             match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[a-zA-Z0-9_\-]{20,})', resp)
             if match:
