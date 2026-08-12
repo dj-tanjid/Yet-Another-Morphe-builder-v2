@@ -1,4 +1,5 @@
 strict-sigcheck = false
+patcher-args = "--continue-on-error"
 
 [Twitter-Piko]
 enabled = true
@@ -56,7 +57,7 @@ version = "latest"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
 uptodown-dlurl = "https://facebook.en.uptodown.com/android"
 arch = "arm64-v8a"
-patcher-args = "--continue-on-error"
+# patcher-args = "--continue-on-error"
 
 [Facebook.patches]
 "github:RookieEnough/De-Vanced" = []
