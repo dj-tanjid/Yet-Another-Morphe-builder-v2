@@ -99,7 +99,7 @@ class UptodownScraper(BaseScraper):
             else:
                 final_url = dl_btn.get("href")
 
-        # Aggressive Fallback: Regex scan the raw HTML for the download URL using a strict 40-character length check
+        # Aggressive Fallback: Regex scan with strict length check to avoid capturing '/apps'
         if not final_url:
             match = re.search(r'(https://dw\.uptodown\.com/dwn/[A-Za-z0-9_-]{40,})', resp)
             if match:
