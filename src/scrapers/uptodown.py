@@ -13,6 +13,7 @@
 # ---------------------------------------------------------
 
 import json  # noqa: I001
+import re
 from pathlib import Path
 
 from src.core.network import NetworkManager
@@ -27,36 +28,59 @@ class UptodownError(ScraperError):
 class UptodownScraper(BaseScraper):
     def __init__(self, net: NetworkManager) -> None:
         super().__init__(net)
-        self._versions_cache: dict[str, str] = {}
+        self._datacode_cache: dict[str, str] = {}
 
     def fetch_metadata(self, url: str) -> AppMetadata:
-        versions_html = self.net.get(f"{url}/versions")
-        self._versions_cache[url] = versions_html
+        # Extract Package Name from the /download page
         pkg_html = self.net.get(f"{url}/download")
         soup_pkg = _parse_html(pkg_html)
-        th = soup_pkg.find("th", string="Package Name")
+        th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
         if th and (td := th.find_next_sibling("td")):
             pkg_name = td.get_text(strip=True)
         else:
             raise UptodownError("Package name not found")
 
-        soup_ver = _parse_html(versions_html)
-        versions = [text for el in soup_ver.select(".version") if (text := el.get_text(strip=True))]
+        # Extract data-code to query the API (fallback to main url if /download lacks it)
+        detail_app = soup_pkg.select_one("#detail-app-name")
+        if not detail_app or "data-code" not in detail_app.attrs:
+            soup_main = _parse_html(self.net.get(url))
+            detail_app = soup_main.select_one("#detail-app-name")
+            if not detail_app or "data-code" not in detail_app.attrs:
+                raise UptodownError("App data-code not found")
+                
+        data_code = str(detail_app["data-code"])
+        self._datacode_cache[url] = data_code
+
+        # Query the JSON API for the first page of versions
+        versions = []
+        try:
+            payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/1"))
+            for entry in payload.get("data", []):
+                if v := entry.get("version"):
+                    versions.append(str(v))
+        except Exception:
+            raise UptodownError("Failed to fetch versions from API")
+
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
     def download(self, url: str, version: str, dest: Path, arch: str, dpi: str) -> DownloadResult:
-        versions_html = self._versions_cache.get(url) or self.net.get(f"{url}/versions")
-        self._versions_cache[url] = versions_html
-
         apparch: set[str] = set(_DEFAULT_ARCH)
         if arch != "all":
             apparch.add(arch)
 
-        soup = _parse_html(versions_html)
-        data_code = str(soup.select_one("#detail-app-name")["data-code"])
+        data_code = self._datacode_cache.get(url)
+        if not data_code:
+            soup_main = _parse_html(self.net.get(url))
+            detail_app = soup_main.select_one("#detail-app-name")
+            if not detail_app or "data-code" not in detail_app.attrs:
+                raise UptodownError("App data-code not found")
+            data_code = str(detail_app["data-code"])
+            self._datacode_cache[url] = data_code
+
         version_url_data = self._find_version_url(url, data_code, version)
-        ver_url = "/".join((version_url_data["url"], version_url_data["extraURL"], str(version_url_data["versionID"])))
+        ver_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
         is_bundle = version_url_data.get("kindFile") == "xapk"
+        
         soup_ver = _parse_html(self.net.get(ver_url))
         btn_variants = soup_ver.select_one(".button.variants")
         if btn_variants and (data_version := btn_variants.get("data-version")):
