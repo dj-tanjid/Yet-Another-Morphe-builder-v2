@@ -118,7 +118,7 @@ class UptodownScraper(BaseScraper):
         return None
 
     def _extract_with_playwright(self, url: str) -> str | None:
-        """Fallback: Hooks directly into the browser's download manager using headless=False to bypass Cloudflare."""
+        """Fallback: Hooks directly into the browser's download manager targeting the main UI."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
@@ -144,7 +144,7 @@ class UptodownScraper(BaseScraper):
                 
                 def handle_request(request):
                     nonlocal found_url
-                    if ("/dwn/" in request.url or ".apk" in request.url or ".apkm" in request.url) and ("uptodown.com" in request.url or "uptodown.net" in request.url):
+                    if ("/dwn/" in request.url or ".apk" in request.url or ".xapk" in request.url) and ("uptodown.com" in request.url or "uptodown.net" in request.url):
                         found_url = request.url
 
                 def handle_download(download):
@@ -177,13 +177,18 @@ class UptodownScraper(BaseScraper):
                     pass
 
                 try:
-                    btn = page.locator('#detail-download-button, #button-group-download button, button.download, button:has-text("Download")').first
+                    # Look for the big green button!
+                    btn = page.locator('#detail-download-button, button.download, .button.download, button:has-text("Download")').first
                     btn.wait_for(state="visible", timeout=10000)
+                    
                     href = btn.get_attribute("href")
                     if href and ("/dwn/" in href or "uptodown.net" in href):
                         found_url = href
                     else:
-                        btn.evaluate("node => node.click()")
+                        btn.click(force=True)
+                        page.wait_for_timeout(1000)
+                        if not found_url:
+                            btn.evaluate("node => node.click()")
                 except Exception as e:
                     epr(f"Playwright btn click failed: {e}")
                 
@@ -213,17 +218,33 @@ class UptodownScraper(BaseScraper):
                 raise UptodownError("App data-code not found")
 
         version_url_data = self._find_version_url(url, data_code, version)
-        page_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
-        is_bundle = version_url_data.get("kindFile") == "xapk"
         
-        resp = self.net.get(page_url)
+        # Build page URL without -x
+        v_id = version_url_data.get("versionID")
+        if v_id:
+            page_url = f"{url}/download/{v_id}"
+        else:
+            page_url = f"{url}/download"
+
+        is_bundle = version_url_data.get("kindFile") in ("xapk", "apkm")
+        
+        try:
+            resp = self.net.get(page_url)
+        except ResourceNotFoundError:
+            # Fallback to base download page if version specific one throws 404/410
+            page_url = f"{url}/download"
+            resp = self.net.get(page_url)
+            
         soup_ver = _parse_html(resp)
         btn_variants = soup_ver.select_one(".button.variants")
         
         if btn_variants and (data_version := btn_variants.get("data-version")):
             page_url, is_bundle = self._pick_variant_url(url, data_code, str(data_version), apparch)
-            resp = self.net.get(page_url)
-            soup_ver = _parse_html(resp)
+            try:
+                resp = self.net.get(page_url)
+                soup_ver = _parse_html(resp)
+            except ResourceNotFoundError:
+                pass # Proceed with previous response if variant fails
 
         final_url = self._extract_download_link(resp, soup_ver)
 
@@ -290,7 +311,7 @@ class UptodownScraper(BaseScraper):
 
         for file_id, is_bundle in candidates:
             if not is_bundle:
-                return f"{url}/download/{file_id}", False
+                return f"{url}/download/{file_id}", False # -x removed
 
         file_id, is_bundle = candidates[0]
-        return f"{url}/download/{file_id}", is_bundle
+        return f"{url}/download/{file_id}", is_bundle # -x removed
