@@ -171,7 +171,7 @@ class NetworkManager:
                     start_time = time.time()
                     challenge_cleared = False
                     
-                    while time.time() - start_time < 20: 
+                    while time.time() - start_time < 25: 
                         content = page.content()
                         title = page.title()
                         
@@ -189,7 +189,7 @@ class NetworkManager:
                         except Exception:
                             pass
                         
-                        page.wait_for_timeout(1000)
+                        page.wait_for_timeout(1500)
                         
                     if not challenge_cleared:
                         epr("Playwright timeout exceeded, moving on.")
