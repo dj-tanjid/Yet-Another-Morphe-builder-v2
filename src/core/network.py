@@ -1,6 +1,15 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek
 # Copyright (C) 2026 TanJid Creations
+# 
+# DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
+# This file is part of uni-apks.
+# Canonical source: https://github.com/krvstek/uni-apks
+#
+# Licensed under the GNU GPLv3. You may modify this file,
+# but you MUST keep this original copyright notice intact
+# and prominently state any changes made.
+# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
 import json
@@ -64,8 +73,6 @@ class NetworkManager:
         self.cookie_jar = TEMP_DIR / "cookies.json"
         self.browser_cfg = TEMP_DIR / "browser.txt"
         
-        # We must use thread-local storage for instances so Thread A rotating 
-        # a browser doesn't close Thread B's open socket connection.
         self.local = threading.local()
         
         token = os.getenv("GITHUB_TOKEN")
@@ -74,7 +81,10 @@ class NetworkManager:
         self._domain_mu = threading.Lock()
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
-        self._cf_lock = threading.Lock()
+        
+        # CRITICAL FIX: Use RLock (Re-entrant Lock) to prevent deadlocks 
+        # when internal methods call each other while the thread is already locked
+        self._cf_lock = threading.RLock()
 
     def _create_session(self, browser: str) -> requests.Session:
         sess = requests.Session(impersonate=browser)
@@ -89,7 +99,6 @@ class NetworkManager:
         return sess
 
     def _get_session(self):
-        """Fetches the requests session locked to the active thread."""
         if getattr(self.local, "session", None) is None:
             browser = "chrome124"
             if self.browser_cfg.exists():
@@ -148,7 +157,9 @@ class NetworkManager:
                 )
                 Stealth().apply_stealth_sync(context)
                 page = context.new_page()
-                page.goto(url, wait_until="domcontentloaded")
+                
+                # Added timeout to prevent hanging on network stalls
+                page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
                 if "Just a moment" in page.title() or "cf-browser-verification" in page.content():
                     epr("Cloudflare challenge hit. Attempting interactive Turnstile bypass...")
@@ -156,7 +167,7 @@ class NetworkManager:
                         frame = page.frame_locator('iframe[src*="cloudflare"]').first
                         if frame:
                             checkbox = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
-                            checkbox.click(timeout=3000)
+                            checkbox.click(timeout=5000)
                     except Exception:
                         pass
                     
@@ -189,11 +200,10 @@ class NetworkManager:
         except Exception:
             pass
             
-        available_browsers = [b for b in _BROWSERS if b != self.local.browser]
+        available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
         self.local.browser = random.choice(available_browsers)
         self.local.session = self._create_session(self.local.browser)
         
-        # Ensure only one thread at a time runs the heavy Playwright process
         with self._cf_lock:
             self._bypass_cloudflare_with_playwright(url, self.local.session)
 
