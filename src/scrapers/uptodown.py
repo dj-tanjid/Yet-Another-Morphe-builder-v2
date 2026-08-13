@@ -16,6 +16,7 @@ import json  # noqa: I001
 import re
 from pathlib import Path
 
+from src.core.logger import epr
 from src.core.network import NetworkManager, ResourceNotFoundError
 from src.scrapers.base import AppMetadata, BaseScraper, DownloadResult, ScraperError, _parse_html
 
@@ -82,6 +83,34 @@ class UptodownScraper(BaseScraper):
 
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
+    def _extract_download_link(self, html_text: str, soup) -> str | None:
+        """Aggressive deep-search for the final CDN link."""
+        for tag in soup.find_all(True):
+            if tag.has_attr("data-url"):
+                val = tag["data-url"].strip()
+                if "dw.uptodown" in val or "core.uptodown" in val:
+                    if val.startswith("http"): return val
+                    if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
+                    return f"https://dw.uptodown.com/dwn/{val}"
+            
+            if tag.name == "a" and tag.has_attr("href"):
+                val = tag["href"].strip()
+                if "dw.uptodown" in val or "core.uptodown" in val:
+                    if val.startswith("http"): return val
+
+        match = re.search(r'(https://(?:dw|core)\.uptodown\.(?:com|net)/dwn/[A-Za-z0-9_/\-+=.]+)', html_text)
+        if match: return match.group(1)
+
+        match = re.search(r'data-url=["\']([^"\']+)["\']', html_text)
+        if match:
+            val = match.group(1).strip()
+            if "dw.uptodown" in val or "core.uptodown" in val:
+                if val.startswith("http"): return val
+                if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
+                return f"https://dw.uptodown.com/dwn/{val}"
+
+        return None
+
     def download(self, url: str, version: str, dest: Path, arch: str, dpi: str) -> DownloadResult:
         apparch: set[str] = set(_DEFAULT_ARCH)
         if arch != "all":
@@ -104,31 +133,16 @@ class UptodownScraper(BaseScraper):
         resp = self.net.get(ver_url)
         soup_ver = _parse_html(resp)
         btn_variants = soup_ver.select_one(".button.variants")
+        
         if btn_variants and (data_version := btn_variants.get("data-version")):
             resp, is_bundle = self._pick_variant_file(url, data_code, str(data_version), apparch)
             soup_ver = _parse_html(resp)
 
-        final_url = None
-        
-        # Robust URL extraction specifically catching the dw.uptodown.net format
-        links = re.findall(r'(https://dw\.uptodown\.(?:com|net)/dwn/[^\s"\'<>]+)', resp)
-        if links:
-            valid_links = [l for l in links if len(l.split("/dwn/")[-1]) > 20]
-            if valid_links:
-                final_url = valid_links[0]
-                
-        if not final_url:
-            dl_btn = soup_ver.select_one("#detail-download-button")
-            if dl_btn:
-                dl_url = dl_btn.get("data-url", "").strip()
-                if dl_url and len(dl_url) > 20:
-                    final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
-                else:
-                    href = dl_btn.get("href", "").strip()
-                    if "dw.uptodown" in href:
-                        final_url = href
+        final_url = self._extract_download_link(resp, soup_ver)
 
         if not final_url:
+            snippet = re.sub(r'\s+', ' ', resp.replace('\n', ''))[:1500]
+            epr(f"DEBUG: Failed to extract Uptodown URL. HTML Snippet: {snippet}")
             raise UptodownError("Download URL attribute not found or APK is externally hosted")
             
         if "play.google.com" in final_url:
@@ -180,7 +194,16 @@ class UptodownScraper(BaseScraper):
 
         for file_id, is_bundle in candidates:
             if not is_bundle:
-                return self.net.get(f"{url}/download/{file_id}-x"), False
+                # Fallback to straight ID if -x is missing
+                try:
+                    res = self.net.get(f"{url}/download/{file_id}-x")
+                    return res, False
+                except ResourceNotFoundError:
+                    return self.net.get(f"{url}/download/{file_id}"), False
 
         file_id, is_bundle = candidates[0]
-        return self.net.get(f"{url}/download/{file_id}-x"), is_bundle
+        try:
+            res = self.net.get(f"{url}/download/{file_id}-x")
+            return res, is_bundle
+        except ResourceNotFoundError:
+            return self.net.get(f"{url}/download/{file_id}"), is_bundle
