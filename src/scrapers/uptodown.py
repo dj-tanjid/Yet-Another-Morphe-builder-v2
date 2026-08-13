@@ -123,6 +123,7 @@ class UptodownScraper(BaseScraper):
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
             import time
+            import random
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(
@@ -144,14 +145,14 @@ class UptodownScraper(BaseScraper):
                 
                 def handle_request(request):
                     nonlocal found_url
-                    if "/dwn/" in request.url and ("uptodown.com" in request.url or "uptodown.net" in request.url):
+                    if ("/dwn/" in request.url or ".apk" in request.url or ".apkm" in request.url) and ("uptodown.com" in request.url or "uptodown.net" in request.url):
                         found_url = request.url
                         
                 page.on("request", handle_request)
                 page.goto(url, wait_until="domcontentloaded", timeout=25000)
                 
                 start_time = time.time()
-                while time.time() - start_time < 10:
+                while time.time() - start_time < 12:
                     if "Just a moment" not in page.title() and "cf-browser-verification" not in page.content():
                         break
                     try:
@@ -172,7 +173,11 @@ class UptodownScraper(BaseScraper):
                 try:
                     btn = page.locator('#detail-download-button, #button-group-download button, button.download, button:has-text("Download")').first
                     btn.wait_for(state="visible", timeout=10000)
-                    btn.evaluate("node => node.click()")
+                    href = btn.get_attribute("href")
+                    if href and ("/dwn/" in href or "uptodown.net" in href):
+                        found_url = href
+                    else:
+                        btn.evaluate("node => node.click()")
                 except Exception as e:
                     epr(f"Playwright btn click failed: {e}")
                 
@@ -238,14 +243,18 @@ class UptodownScraper(BaseScraper):
     def _find_version_url(self, url: str, data_code: str, version: str) -> dict:
         for i in range(1, 21):
             try:
-                payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/{i}"))
+                resp_text = self.net.get(f"{url}/apps/{data_code}/versions/{i}")
+                payload = json.loads(resp_text)
             except Exception:
-                break
+                continue
+                
             data = payload.get("data")
             if not data:
                 break
+                
             for entry in data:
-                if entry.get("version") != version:
+                # Fuzzy matching to account for varying Uptodown suffix implementations
+                if version.lower() not in str(entry.get("version", "")).lower():
                     continue
                 ver_url_dict = entry.get("versionURL") or {}
                 return ver_url_dict | {"kindFile": entry.get("kindFile", "")}
