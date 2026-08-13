@@ -81,8 +81,6 @@ class UptodownScraper(BaseScraper):
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
     def _extract_download_link(self, html_text: str, soup) -> str | None:
-        """Aggressive deep-search for the final CDN link, catching relative paths."""
-        # 1. Search tags safely checking for relative /dwn/ paths
         for tag in soup.find_all(True):
             if tag.has_attr("data-url"):
                 val = tag["data-url"].strip()
@@ -97,11 +95,9 @@ class UptodownScraper(BaseScraper):
                     if val.startswith("http"): return val
                     if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
 
-        # 2. Strict Regex for hardcoded absolute URLs
         match = re.search(r'(https://(?:dw|core)\.uptodown\.(?:com|net)/dwn/[A-Za-z0-9_/\-+=.]+)', html_text)
         if match: return match.group(1)
 
-        # 3. Broad Regex for raw JS variables and fallback data attributes
         match = re.search(r'data-url=["\']([^"\']+)["\']', html_text)
         if match:
             val = match.group(1).strip()
@@ -109,7 +105,40 @@ class UptodownScraper(BaseScraper):
                 if val.startswith("http"): return val
                 if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
                 return f"https://dw.uptodown.com/dwn/{val}"
+        return None
 
+    def _extract_with_playwright(self, url: str) -> str | None:
+        """Fallback: Loads page headlessly, clicks the download button, and sniffs the network for the /dwn/ link."""
+        try:
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
+                context = browser.new_context(viewport={"width": 1920, "height": 1080})
+                page = context.new_page()
+                
+                found_urls = []
+                
+                def handle_request(request):
+                    if "/dwn/" in request.url and ("uptodown.com" in request.url or "uptodown.net" in request.url):
+                        found_urls.append(request.url)
+                        
+                page.on("request", handle_request)
+                page.goto(url, wait_until="domcontentloaded", timeout=20000)
+                
+                try:
+                    btn = page.locator('#detail-download-button, #button-group-download > div, button.download').first
+                    btn.wait_for(state="visible", timeout=5000)
+                    btn.click(timeout=5000)
+                except Exception:
+                    pass
+                
+                page.wait_for_timeout(4000)
+                browser.close()
+                
+                if found_urls:
+                    return found_urls[0]
+        except Exception as e:
+            epr(f"Playwright Uptodown fallback failed: {e}")
         return None
 
     def download(self, url: str, version: str, dest: Path, arch: str, dpi: str) -> DownloadResult:
@@ -128,22 +157,31 @@ class UptodownScraper(BaseScraper):
                 raise UptodownError("App data-code not found")
 
         version_url_data = self._find_version_url(url, data_code, version)
-        ver_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
+        page_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
         is_bundle = version_url_data.get("kindFile") == "xapk"
         
-        resp = self.net.get(ver_url)
+        resp = self.net.get(page_url)
         soup_ver = _parse_html(resp)
         btn_variants = soup_ver.select_one(".button.variants")
         
         if btn_variants and (data_version := btn_variants.get("data-version")):
-            resp, is_bundle = self._pick_variant_file(url, data_code, str(data_version), apparch)
+            page_url, is_bundle = self._pick_variant_url(url, data_code, str(data_version), apparch)
+            try:
+                resp = self.net.get(page_url)
+            except ResourceNotFoundError:
+                page_url = page_url.replace("-x", "")
+                resp = self.net.get(page_url)
             soup_ver = _parse_html(resp)
 
         final_url = self._extract_download_link(resp, soup_ver)
 
+        # Dynamic Button Fallback
         if not final_url:
-            snippet = re.sub(r'\s+', ' ', resp.replace('\n', ''))[:1500]
-            epr(f"DEBUG: Failed to extract Uptodown URL. HTML Snippet: {snippet}")
+            epr(f"DEBUG: Static URL extraction failed. Running Playwright on {page_url}...")
+            final_url = self._extract_with_playwright(page_url)
+
+        if not final_url:
+            Path(f"uptodown_error_{dest.stem}.html").write_text(resp, encoding="utf-8")
             raise UptodownError("Download URL attribute not found or APK is externally hosted")
             
         if "play.google.com" in final_url:
@@ -166,7 +204,7 @@ class UptodownScraper(BaseScraper):
                 return ver_url_dict | {"kindFile": entry.get("kindFile", "")}
         raise UptodownError("Version not found")
 
-    def _pick_variant_file(self, url: str, data_code: str, data_version: str, apparch: set[str]) -> tuple[str, bool]:
+    def _pick_variant_url(self, url: str, data_code: str, data_version: str, apparch: set[str]) -> tuple[str, bool]:
         base_url = url.rsplit("/", 1)[0]
         files_html = json.loads(self.net.get(f"{base_url}/app/{data_code}/version/{data_version}/files")).get("content", "")
         soup = _parse_html(files_html)
@@ -195,15 +233,7 @@ class UptodownScraper(BaseScraper):
 
         for file_id, is_bundle in candidates:
             if not is_bundle:
-                try:
-                    res = self.net.get(f"{url}/download/{file_id}-x")
-                    return res, False
-                except ResourceNotFoundError:
-                    return self.net.get(f"{url}/download/{file_id}"), False
+                return f"{url}/download/{file_id}-x", False
 
         file_id, is_bundle = candidates[0]
-        try:
-            res = self.net.get(f"{url}/download/{file_id}-x")
-            return res, is_bundle
-        except ResourceNotFoundError:
-            return self.net.get(f"{url}/download/{file_id}"), is_bundle
+        return f"{url}/download/{file_id}-x", is_bundle
