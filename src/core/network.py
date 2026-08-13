@@ -164,14 +164,14 @@ class NetworkManager:
                     page = context.new_page()
                     
                     try:
-                        page.goto(url, wait_until="domcontentloaded", timeout=12000)
+                        page.goto(url, wait_until="domcontentloaded", timeout=15000)
                     except Exception:
                         pass 
 
                     start_time = time.time()
                     challenge_cleared = False
                     
-                    while time.time() - start_time < 12: 
+                    while time.time() - start_time < 25: 
                         content = page.content()
                         title = page.title()
                         
@@ -185,19 +185,11 @@ class NetworkManager:
                                 if "challenges.cloudflare.com" in frame.url:
                                     box = frame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage').first
                                     if box.is_visible():
-                                        box_box = box.bounding_box()
-                                        if box_box:
-                                            x = box_box["x"] + box_box["width"] / 2
-                                            y = box_box["y"] + box_box["height"] / 2
-                                            page.mouse.move(x, y)
-                                            page.wait_for_timeout(random.randint(100, 200))
-                                            page.mouse.down()
-                                            page.wait_for_timeout(random.randint(50, 100))
-                                            page.mouse.up()
+                                        box.click(force=True)
                         except Exception:
                             pass
                         
-                        page.wait_for_timeout(1000)
+                        page.wait_for_timeout(1500)
                         
                     if not challenge_cleared:
                         epr("Playwright timeout exceeded, moving on.")
@@ -248,7 +240,7 @@ class NetworkManager:
 
                 if _handle_status(resp, url, attempt):
                     success = self._rotate_browser(url)
-                    if not success and attempt >= 2:
+                    if not success and attempt >= 3:
                         raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                     _retry_sleep(attempt)
                     self._load_state(self.local.session)
@@ -262,7 +254,7 @@ class NetworkManager:
                 last_exc = exc
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
                 success = self._rotate_browser(url)
-                if not success and attempt >= 2:
+                if not success and attempt >= 3:
                     raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                 _retry_sleep(attempt)
                 self._load_state(self.local.session)
@@ -290,7 +282,7 @@ class NetworkManager:
 
                     if _handle_status(resp, url, attempt):
                         success = self._rotate_browser(url)
-                        if not success and attempt >= 2:
+                        if not success and attempt >= 3:
                             raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                         _retry_sleep(attempt)
                         self._load_state(self.local.session)
@@ -310,7 +302,7 @@ class NetworkManager:
                     last_exc = exc
                     epr(f"Download error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
                     success = self._rotate_browser(url)
-                    if not success and attempt >= 2:
+                    if not success and attempt >= 3:
                         raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                     _retry_sleep(attempt)
                     self._load_state(self.local.session)
