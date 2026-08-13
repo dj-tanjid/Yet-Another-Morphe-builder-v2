@@ -137,17 +137,23 @@ jobs:
           fi
           gh release upload "$TAG" "${apks[@]}" --clobber --repo "$GITHUB_REPOSITORY"
 
-      - name: Upload build log to draft release
+      - name: Upload logs and debug files
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.prepare.outputs.version }}
           LABEL: ${{ matrix.id }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
         run: |
-          [[ -f build.md ]] || exit 0
-          [[ -s build.md ]] || exit 0
-          cp build.md "build-${LABEL}.md"
-          gh release upload "$TAG" "build-${LABEL}.md" --clobber --repo "$GITHUB_REPOSITORY"
+          # Upload build log
+          if [[ -f build.md ]] && [[ -s build.md ]]; then
+            cp build.md "build-${LABEL}.md"
+            gh release upload "$TAG" "build-${LABEL}.md" --clobber --repo "$GITHUB_REPOSITORY"
+          fi
+          # Upload HTML debug dumps if scraping failed
+          shopt -s nullglob
+          for debug_file in uptodown_error_*.html; do
+            gh release upload "$TAG" "$debug_file" --clobber --repo "$GITHUB_REPOSITORY"
+          done
 
   release:
     needs: [prepare, run]
