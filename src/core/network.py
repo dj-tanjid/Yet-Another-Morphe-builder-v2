@@ -81,9 +81,7 @@ class NetworkManager:
         self._domain_mu = threading.Lock()
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
-        
-        # A global lock for Playwright to ensure only one thread boots a real browser at a time
-        self._playwright_lock = threading.Lock()
+        self._cf_lock = threading.RLock()
 
     def _create_session(self, browser: str) -> requests.Session:
         sess = requests.Session(impersonate=browser)
@@ -140,7 +138,7 @@ class NetworkManager:
         except ImportError:
             return {}
 
-        with self._playwright_lock:
+        with self._cf_lock:
             epr("Initiating Playwright Stealth (Headless=False) bypass...")
             try:
                 with sync_playwright() as p:
@@ -160,11 +158,12 @@ class NetworkManager:
                     Stealth().apply_stealth_sync(context)
                     page = context.new_page()
                     
-                    page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                    # Drastically shortened timeout. 
+                    # If Cloudflare blocks the Datacenter IP, we want to fail fast and fallback to Uptodown.
+                    page.goto(url, wait_until="domcontentloaded", timeout=12000)
 
-                    # Simulate Human Mouse Movements & Clicks for Turnstile 
                     start_time = time.time()
-                    while time.time() - start_time < 30:
+                    while time.time() - start_time < 10:
                         content = page.content()
                         title = page.title()
                         
@@ -177,7 +176,6 @@ class NetworkManager:
                                 if "challenges.cloudflare.com" in frame.url:
                                     box = frame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage').first
                                     if box.is_visible():
-                                        # Physically move the mouse and hold click
                                         box_box = box.bounding_box()
                                         if box_box:
                                             x = box_box["x"] + box_box["width"] / 2
@@ -196,27 +194,28 @@ class NetworkManager:
                     browser.close()
                     return cookies_dict
             except Exception as e:
-                epr(f"Playwright bypass failed: {e}")
+                epr(f"Playwright bypass failed or timed out: {e}")
                 return {}
 
     def _rotate_browser(self, url: str) -> None:
         """Safely tears down the thread's blocked session and rotates fingerprints globally."""
-        self._clear_state()
+        with self._cf_lock:
+            self._clear_state()
             
-        try:
-            self.local.session.close()
-        except Exception:
-            pass
+            try:
+                self.local.session.close()
+            except Exception:
+                pass
+                
+            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
+            self.local.browser = random.choice(available_browsers)
+            self.local.session = self._create_session(self.local.browser)
             
-        available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
-        self.local.browser = random.choice(available_browsers)
-        self.local.session = self._create_session(self.local.browser)
-        
-        cookies = self._bypass_cloudflare_with_playwright(url)
-        for k, v in cookies.items():
-            self.local.session.cookies.set(k, v)
-            
-        self._save_state(self.local.session)
+            cookies = self._bypass_cloudflare_with_playwright(url)
+            for k, v in cookies.items():
+                self.local.session.cookies.set(k, v)
+                
+            self._save_state(self.local.session)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
