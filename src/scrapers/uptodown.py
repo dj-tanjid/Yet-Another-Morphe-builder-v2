@@ -123,7 +123,6 @@ class UptodownScraper(BaseScraper):
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
             import time
-            import random
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(
@@ -147,8 +146,15 @@ class UptodownScraper(BaseScraper):
                     nonlocal found_url
                     if ("/dwn/" in request.url or ".apk" in request.url or ".apkm" in request.url) and ("uptodown.com" in request.url or "uptodown.net" in request.url):
                         found_url = request.url
+
+                def handle_download(download):
+                    nonlocal found_url
+                    found_url = download.url
+                    download.cancel()
                         
                 page.on("request", handle_request)
+                page.on("download", handle_download)
+                
                 page.goto(url, wait_until="domcontentloaded", timeout=25000)
                 
                 start_time = time.time()
@@ -216,11 +222,7 @@ class UptodownScraper(BaseScraper):
         
         if btn_variants and (data_version := btn_variants.get("data-version")):
             page_url, is_bundle = self._pick_variant_url(url, data_code, str(data_version), apparch)
-            try:
-                resp = self.net.get(page_url)
-            except ResourceNotFoundError:
-                page_url = page_url.replace("-x", "")
-                resp = self.net.get(page_url)
+            resp = self.net.get(page_url)
             soup_ver = _parse_html(resp)
 
         final_url = self._extract_download_link(resp, soup_ver)
@@ -253,7 +255,6 @@ class UptodownScraper(BaseScraper):
                 break
                 
             for entry in data:
-                # Fuzzy matching to account for varying Uptodown suffix implementations
                 if version.lower() not in str(entry.get("version", "")).lower():
                     continue
                 ver_url_dict = entry.get("versionURL") or {}
@@ -289,7 +290,7 @@ class UptodownScraper(BaseScraper):
 
         for file_id, is_bundle in candidates:
             if not is_bundle:
-                return f"{url}/download/{file_id}-x", False
+                return f"{url}/download/{file_id}", False
 
         file_id, is_bundle = candidates[0]
-        return f"{url}/download/{file_id}-x", is_bundle
+        return f"{url}/download/{file_id}", is_bundle
