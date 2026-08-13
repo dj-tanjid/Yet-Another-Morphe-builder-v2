@@ -130,13 +130,13 @@ class NetworkManager:
         except Exception:
             pass
 
-    def _bypass_cloudflare_with_playwright(self, url: str) -> dict:
-        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually. Returns cookies."""
+    def _bypass_cloudflare_with_playwright(self, url: str, session) -> bool:
+        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
         except ImportError:
-            return {}
+            return False
 
         with self._cf_lock:
             epr("Initiating Playwright Stealth (Headless=False) bypass...")
@@ -158,12 +158,13 @@ class NetworkManager:
                     Stealth().apply_stealth_sync(context)
                     page = context.new_page()
                     
-                    # Drastically shortened timeout. 
-                    # If Cloudflare blocks the Datacenter IP, we want to fail fast and fallback to Uptodown.
-                    page.goto(url, wait_until="domcontentloaded", timeout=12000)
+                    try:
+                        page.goto(url, wait_until="domcontentloaded", timeout=12000)
+                    except Exception:
+                        pass # Ignore timeout, Turnstile might still be solvable
 
                     start_time = time.time()
-                    while time.time() - start_time < 10:
+                    while time.time() - start_time < 10: # Very short timeout for CF. Fast fail to Uptodown.
                         content = page.content()
                         title = page.title()
                         
@@ -181,41 +182,41 @@ class NetworkManager:
                                             x = box_box["x"] + box_box["width"] / 2
                                             y = box_box["y"] + box_box["height"] / 2
                                             page.mouse.move(x, y)
-                                            page.wait_for_timeout(random.randint(100, 300))
+                                            page.wait_for_timeout(random.randint(100, 200))
                                             page.mouse.down()
-                                            page.wait_for_timeout(random.randint(50, 150))
+                                            page.wait_for_timeout(random.randint(50, 100))
                                             page.mouse.up()
                         except Exception:
                             pass
                         
-                        page.wait_for_timeout(2000)
+                        page.wait_for_timeout(1000)
                     
-                    cookies_dict = {c["name"]: c["value"] for c in context.cookies()}
+                    for c in context.cookies():
+                        session.cookies.set(c["name"], c["value"], domain=c["domain"])
+                    
+                    ua = page.evaluate("navigator.userAgent")
+                    session.headers.update({"User-Agent": ua})
+                    
                     browser.close()
-                    return cookies_dict
+                    self._save_state(session)
+                    return True
             except Exception as e:
                 epr(f"Playwright bypass failed or timed out: {e}")
-                return {}
+                return False
 
     def _rotate_browser(self, url: str) -> None:
-        """Safely tears down the thread's blocked session and rotates fingerprints globally."""
-        with self._cf_lock:
-            self._clear_state()
+        self._clear_state()
             
-            try:
-                self.local.session.close()
-            except Exception:
-                pass
-                
-            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
-            self.local.browser = random.choice(available_browsers)
-            self.local.session = self._create_session(self.local.browser)
+        try:
+            self.local.session.close()
+        except Exception:
+            pass
             
-            cookies = self._bypass_cloudflare_with_playwright(url)
-            for k, v in cookies.items():
-                self.local.session.cookies.set(k, v)
-                
-            self._save_state(self.local.session)
+        available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
+        self.local.browser = random.choice(available_browsers)
+        self.local.session = self._create_session(self.local.browser)
+        
+        self._bypass_cloudflare_with_playwright(url, self.local.session)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
