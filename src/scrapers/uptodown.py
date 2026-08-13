@@ -79,7 +79,6 @@ class UptodownScraper(BaseScraper):
             if not versions:
                 raise ValueError("Empty JSON versions list")
         except Exception:
-            # Fallback to HTML scraping if the JSON API is restricted
             try:
                 versions_html = self.net.get(f"{url}/versions")
                 soup_v = _parse_html(versions_html)
@@ -119,23 +118,52 @@ class UptodownScraper(BaseScraper):
         return None
 
     def _extract_with_playwright(self, url: str) -> str | None:
-        """Fallback: Hooks directly into the browser's download manager to bypass obfuscated buttons."""
+        """Fallback: Hooks directly into the browser's download manager using headless=False to bypass Cloudflare."""
         try:
             from playwright.sync_api import sync_playwright
+            from playwright_stealth import Stealth
+            import time
+            import random
+            
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
+                browser = p.chromium.launch(
+                    headless=False, 
+                    args=["--no-sandbox", "--disable-gpu", "--disable-blink-features=AutomationControlled"]
+                )
                 context = browser.new_context(
                     viewport={"width": 1920, "height": 1080},
-                    user_agent=self.net._get_session().headers.get("User-Agent")
+                    user_agent=self.net._get_session().headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                 )
+                Stealth().apply_stealth_sync(context)
                 
-                # Pass existing network clearance cookies
                 cookies = [{"name": k, "value": v, "domain": ".uptodown.com", "path": "/"} for k, v in self.net._get_session().cookies.get_dict().items()]
                 if cookies:
                     context.add_cookies(cookies)
                     
                 page = context.new_page()
-                page.goto(url, wait_until="domcontentloaded", timeout=20000)
+                found_urls = []
+                
+                def handle_request(request):
+                    if "/dwn/" in request.url and ("uptodown.com" in request.url or "uptodown.net" in request.url):
+                        found_urls.append(request.url)
+                        
+                page.on("request", handle_request)
+                page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                
+                # Check for CF Turnstile on Uptodown and click it
+                start_time = time.time()
+                while time.time() - start_time < 12:
+                    if "Just a moment" not in page.title() and "cf-browser-verification" not in page.content():
+                        break
+                    try:
+                        for frame in page.frames:
+                            if "challenges.cloudflare.com" in frame.url:
+                                box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
+                                if box.is_visible():
+                                    box.click(force=True)
+                    except Exception:
+                        pass
+                    page.wait_for_timeout(1000)
                 
                 try:
                     page.locator("#purposes-agree").click(timeout=2000)
@@ -143,21 +171,17 @@ class UptodownScraper(BaseScraper):
                     pass
 
                 try:
-                    btn = page.locator('#detail-download-button, #button-group-download button, button.download, #button-group-download > div').first
-                    btn.wait_for(state="visible", timeout=5000)
-                    
-                    with page.expect_download(timeout=15000) as download_info:
-                        btn.click(timeout=5000)
-                        
-                    download = download_info.value
-                    final_url = download.url
-                    download.cancel()
-                    browser.close()
-                    return final_url
-                except Exception as e:
-                    epr(f"Playwright download hook failed: {e}")
-                    
+                    btn = page.locator('#detail-download-button, #button-group-download button, button.download, button:has-text("Download")').first
+                    btn.wait_for(state="visible", timeout=10000)
+                    btn.click(timeout=5000)
+                except Exception:
+                    pass
+                
+                page.wait_for_timeout(6000)
                 browser.close()
+                
+                if found_urls:
+                    return found_urls[-1]  # Return the last intercepted request (most likely the redirect)
         except Exception as e:
             epr(f"Playwright Uptodown fallback failed: {e}")
         return None
