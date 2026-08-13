@@ -57,26 +57,37 @@ class UptodownScraper(BaseScraper):
         if not pkg_name:
             raise UptodownError("Package name not found")
 
-        detail_app = soup_pkg.select_one("#detail-app-name")
-        if not detail_app or "data-code" not in detail_app.attrs:
+        detail_app = soup_pkg.find(attrs={"data-code": True})
+        if detail_app:
+            data_code = str(detail_app["data-code"])
+        else:
             m = re.search(r'data-code=["\'](\d+)["\']', pkg_html)
             if m:
                 data_code = m.group(1)
             else:
                 raise UptodownError("App data-code not found")
-        else:
-            data_code = str(detail_app["data-code"])
             
         self._datacode_cache[url] = data_code
-
         versions = []
+
         try:
-            payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/1"))
+            resp_text = self.net.get(f"{url}/apps/{data_code}/versions/1")
+            payload = json.loads(resp_text)
             for entry in payload.get("data", []):
                 if v := entry.get("version"):
                     versions.append(str(v))
+            if not versions:
+                raise ValueError("Empty JSON versions list")
         except Exception:
-            raise UptodownError("Failed to fetch versions from API")
+            # Fallback to HTML scraping if the JSON API is restricted
+            try:
+                versions_html = self.net.get(f"{url}/versions")
+                soup_v = _parse_html(versions_html)
+                for v_tag in soup_v.select(".version"):
+                    if v_text := v_tag.get_text(strip=True):
+                        versions.append(v_text)
+            except Exception as e:
+                raise UptodownError(f"Failed to fetch versions from API or HTML fallback: {e}")
 
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
@@ -108,35 +119,45 @@ class UptodownScraper(BaseScraper):
         return None
 
     def _extract_with_playwright(self, url: str) -> str | None:
-        """Fallback: Loads page headlessly, clicks the download button, and sniffs the network for the /dwn/ link."""
+        """Fallback: Hooks directly into the browser's download manager to bypass obfuscated buttons."""
         try:
             from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
-                context = browser.new_context(viewport={"width": 1920, "height": 1080})
+                context = browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                    user_agent=self.net._get_session().headers.get("User-Agent")
+                )
+                
+                # Pass existing network clearance cookies
+                cookies = [{"name": k, "value": v, "domain": ".uptodown.com", "path": "/"} for k, v in self.net._get_session().cookies.get_dict().items()]
+                if cookies:
+                    context.add_cookies(cookies)
+                    
                 page = context.new_page()
-                
-                found_urls = []
-                
-                def handle_request(request):
-                    if "/dwn/" in request.url and ("uptodown.com" in request.url or "uptodown.net" in request.url):
-                        found_urls.append(request.url)
-                        
-                page.on("request", handle_request)
                 page.goto(url, wait_until="domcontentloaded", timeout=20000)
                 
                 try:
-                    btn = page.locator('#detail-download-button, #button-group-download > div, button.download').first
-                    btn.wait_for(state="visible", timeout=5000)
-                    btn.click(timeout=5000)
+                    page.locator("#purposes-agree").click(timeout=2000)
                 except Exception:
                     pass
-                
-                page.wait_for_timeout(4000)
+
+                try:
+                    btn = page.locator('#detail-download-button, #button-group-download button, button.download, #button-group-download > div').first
+                    btn.wait_for(state="visible", timeout=5000)
+                    
+                    with page.expect_download(timeout=15000) as download_info:
+                        btn.click(timeout=5000)
+                        
+                    download = download_info.value
+                    final_url = download.url
+                    download.cancel()
+                    browser.close()
+                    return final_url
+                except Exception as e:
+                    epr(f"Playwright download hook failed: {e}")
+                    
                 browser.close()
-                
-                if found_urls:
-                    return found_urls[0]
         except Exception as e:
             epr(f"Playwright Uptodown fallback failed: {e}")
         return None
@@ -175,7 +196,6 @@ class UptodownScraper(BaseScraper):
 
         final_url = self._extract_download_link(resp, soup_ver)
 
-        # Dynamic Button Fallback
         if not final_url:
             epr(f"DEBUG: Static URL extraction failed. Running Playwright on {page_url}...")
             final_url = self._extract_with_playwright(page_url)
@@ -193,7 +213,10 @@ class UptodownScraper(BaseScraper):
 
     def _find_version_url(self, url: str, data_code: str, version: str) -> dict:
         for i in range(1, 21):
-            payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/{i}"))
+            try:
+                payload = json.loads(self.net.get(f"{url}/apps/{data_code}/versions/{i}"))
+            except Exception:
+                break
             data = payload.get("data")
             if not data:
                 break
