@@ -63,9 +63,10 @@ class NetworkManager:
     def __init__(self) -> None:
         self.cookie_jar = TEMP_DIR / "cookies.json"
         self.browser_cfg = TEMP_DIR / "browser.txt"
-        self._current_browser = "chrome124"
-        self.session = self._create_session(self._current_browser)
-        self._load_state()
+        
+        # We must use thread-local storage for instances so Thread A rotating 
+        # a browser doesn't close Thread B's open socket connection.
+        self.local = threading.local()
         
         token = os.getenv("GITHUB_TOKEN")
         self._gh_headers: dict[str, str] = {"Authorization": f"token {token}"} if token else {}
@@ -73,6 +74,7 @@ class NetworkManager:
         self._domain_mu = threading.Lock()
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
+        self._cf_lock = threading.Lock()
 
     def _create_session(self, browser: str) -> requests.Session:
         sess = requests.Session(impersonate=browser)
@@ -86,35 +88,46 @@ class NetworkManager:
         })
         return sess
 
-    def _save_state(self) -> None:
-        try:
-            TEMP_DIR.mkdir(parents=True, exist_ok=True)
-            self.browser_cfg.write_text(self._current_browser)
-            self.cookie_jar.write_text(json.dumps(self.session.cookies.get_dict()))
-        except Exception:
-            pass
+    def _get_session(self):
+        """Fetches the requests session locked to the active thread."""
+        if getattr(self.local, "session", None) is None:
+            browser = "chrome124"
+            if self.browser_cfg.exists():
+                try: browser = self.browser_cfg.read_text().strip()
+                except: pass
+            self.local.browser = browser
+            self.local.session = self._create_session(browser)
+            self._load_state(self.local.session)
+        return self.local.session
 
-    def _load_state(self) -> None:
-        try:
-            if self.browser_cfg.exists() and self.cookie_jar.exists():
-                self._current_browser = self.browser_cfg.read_text().strip()
-                self.session = self._create_session(self._current_browser)
-                cookies = json.loads(self.cookie_jar.read_text())
-                for k, v in cookies.items():
-                    self.session.cookies.set(k, v)
-        except Exception:
-            pass
+    def _save_state(self, session) -> None:
+        with self._cf_lock:
+            try:
+                TEMP_DIR.mkdir(parents=True, exist_ok=True)
+                self.browser_cfg.write_text(self.local.browser)
+                self.cookie_jar.write_text(json.dumps(session.cookies.get_dict()))
+            except Exception:
+                pass
+
+    def _load_state(self, session) -> None:
+        with self._cf_lock:
+            try:
+                if self.cookie_jar.exists():
+                    cookies = json.loads(self.cookie_jar.read_text())
+                    for k, v in cookies.items():
+                        session.cookies.set(k, v)
+            except Exception:
+                pass
 
     def _clear_state(self) -> None:
-        try:
-            if self.browser_cfg.exists(): 
-                self.browser_cfg.unlink()
-            if self.cookie_jar.exists(): 
-                self.cookie_jar.unlink()
-        except Exception:
-            pass
+        with self._cf_lock:
+            try:
+                if self.browser_cfg.exists(): self.browser_cfg.unlink()
+                if self.cookie_jar.exists(): self.cookie_jar.unlink()
+            except Exception:
+                pass
 
-    def _bypass_cloudflare_with_playwright(self, url: str) -> bool:
+    def _bypass_cloudflare_with_playwright(self, url: str, session) -> bool:
         """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually."""
         try:
             from playwright.sync_api import sync_playwright
@@ -131,7 +144,7 @@ class NetworkManager:
                 )
                 context = browser.new_context(
                     viewport={"width": 1920, "height": 1080},
-                    user_agent=self.session.headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    user_agent=session.headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                 )
                 Stealth().apply_stealth_sync(context)
                 page = context.new_page()
@@ -154,50 +167,53 @@ class NetworkManager:
                         epr("Playwright timeout exceeded, moving on.")
                 
                 for c in context.cookies():
-                    self.session.cookies.set(c["name"], c["value"], domain=c["domain"])
+                    session.cookies.set(c["name"], c["value"], domain=c["domain"])
                 
                 ua = page.evaluate("navigator.userAgent")
-                self.session.headers.update({"User-Agent": ua})
+                session.headers.update({"User-Agent": ua})
                 
                 browser.close()
-                self._save_state()
+                self._save_state(session)
                 return True
         except Exception as e:
             epr(f"Playwright bypass failed: {e}")
             return False
 
     def _rotate_browser(self, url: str) -> None:
-        """Fully tears down the blocked session and creates a clean one before running Playwright."""
+        """Safely tears down the thread's blocked session and rotates fingerprints globally."""
+        with self._cf_lock:
+            self._clear_state()
+            
         try:
-            self.session.close() 
+            self.local.session.close()
         except Exception:
             pass
             
-        self._clear_state()
+        available_browsers = [b for b in _BROWSERS if b != self.local.browser]
+        self.local.browser = random.choice(available_browsers)
+        self.local.session = self._create_session(self.local.browser)
         
-        available_browsers = [b for b in _BROWSERS if b != self._current_browser]
-        self._current_browser = random.choice(available_browsers)
-        
-        # Reinitialize self.session entirely FIRST to prevent "Session is Closed" exceptions
-        self.session = self._create_session(self._current_browser)
-        
-        self._bypass_cloudflare_with_playwright(url)
+        # Ensure only one thread at a time runs the heavy Playwright process
+        with self._cf_lock:
+            self._bypass_cloudflare_with_playwright(url, self.local.session)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
         last_exc: Exception | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
+            sess = self._get_session()
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
                     time.sleep(random.uniform(1.0, 2.5))
-                    resp = self.session.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
+                    resp = sess.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
                     self._rotate_browser(url)
                     _retry_sleep(attempt)
+                    self._load_state(self.local.session)
                     continue
 
-                self._save_state()
+                self._save_state(sess)
                 return resp.text
             except ResourceNotFoundError:
                 raise
@@ -206,6 +222,7 @@ class NetworkManager:
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
                 self._rotate_browser(url)
                 _retry_sleep(attempt)
+                self._load_state(self.local.session)
         raise NetworkError(f"Request failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
 
     def download(self, url: str, dest: Path, headers: dict[str, str] | None = None) -> None:
@@ -222,21 +239,23 @@ class NetworkManager:
             last_exc: Exception | None = None
             
             for attempt in range(1, _MAX_ATTEMPTS + 1):
+                sess = self._get_session()
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
                         time.sleep(random.uniform(1.0, 3.0))
-                        resp = self.session.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
+                        resp = sess.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
                         self._rotate_browser(url)
                         _retry_sleep(attempt)
+                        self._load_state(self.local.session)
                         continue
 
                     with tmp.open("wb") as fh:
                         for chunk in resp.iter_content(chunk_size=1048576):
                             fh.write(chunk)
                     
-                    self._save_state()
+                    self._save_state(sess)
                     tmp.replace(dest)
                     return
                 except ResourceNotFoundError:
@@ -247,6 +266,7 @@ class NetworkManager:
                     epr(f"Download error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
                     self._rotate_browser(url)
                     _retry_sleep(attempt)
+                    self._load_state(self.local.session)
             raise NetworkError(f"Download failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
 
     def __enter__(self) -> "NetworkManager":
@@ -254,6 +274,6 @@ class NetworkManager:
 
     def __exit__(self, *_: object) -> None:
         try:
-            self.session.close()
+            self.local.session.close()
         except Exception:
             pass
