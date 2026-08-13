@@ -5,14 +5,9 @@
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
 # Canonical source: https://github.com/krvstek/uni-apks
-#
-# Licensed under the GNU GPLv3. You may modify this file,
-# but you MUST keep this original copyright notice intact
-# and prominently state any changes made.
-# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
-import json  # noqa: I001
+import json
 import re
 from pathlib import Path
 
@@ -20,7 +15,6 @@ from src.core.network import NetworkManager, ResourceNotFoundError
 from src.scrapers.base import AppMetadata, BaseScraper, DownloadResult, ScraperError, _parse_html
 
 _DEFAULT_ARCH: frozenset[str] = frozenset({"arm64-v8a, armeabi-v7a, x86_64", "arm64-v8a, armeabi-v7a, x86, x86_64", "arm64-v8a, armeabi-v7a"})
-
 
 class UptodownError(ScraperError):
     pass
@@ -68,12 +62,13 @@ class UptodownScraper(BaseScraper):
 
         data_code = self._datacode_cache.get(url)
         if not data_code:
-            soup_main = _parse_html(self.net.get(url))
-            detail_app = soup_main.select_one("#detail-app-name")
-            if not detail_app or "data-code" not in detail_app.attrs:
+            try:
+                soup_main = _parse_html(self.net.get(url))
+                detail_app = soup_main.select_one("#detail-app-name")
+                data_code = str(detail_app["data-code"])
+                self._datacode_cache[url] = data_code
+            except Exception:
                 raise UptodownError("App data-code not found")
-            data_code = str(detail_app["data-code"])
-            self._datacode_cache[url] = data_code
 
         version_url_data = self._find_version_url(url, data_code, version)
         ver_url = "/".join((str(version_url_data.get("url", "")), str(version_url_data.get("extraURL", "")), str(version_url_data.get("versionID", ""))))
@@ -94,20 +89,28 @@ class UptodownScraper(BaseScraper):
             if dl_url.startswith("http"):
                 pass
             elif len(dl_url) > 10 and dl_url != "apps":
-                final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+                if dl_url.startswith("/dwn/"):
+                    final_url = f"https://dw.uptodown.net{dl_url}"
+                else:
+                    final_url = f"https://dw.uptodown.net/dwn/{dl_url}"
             else:
                 href = dl_btn.get("href", "").strip()
                 if "dw.uptodown" in href:
                     final_url = href
 
+        # Updated Regex Fallback: Matches full nested URL structure safely
         if not final_url:
-            match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[a-zA-Z0-9_\-]{20,})', resp)
-            if match:
+            match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[A-Za-z0-9_/\-+=.]+)', resp)
+            if match and len(match.group(1)) > 40:
                 final_url = match.group(1)
             else:
-                match = re.search(r'data-url=["\']([a-zA-Z0-9_\-]{40,})["\']', resp)
+                match = re.search(r'data-url=["\']([A-Za-z0-9_/\-+=.]{40,})["\']', resp)
                 if match:
-                    final_url = f"https://dw.uptodown.com/dwn/{match.group(1)}"
+                    val = match.group(1)
+                    if val.startswith("/dwn/"):
+                        final_url = f"https://dw.uptodown.net{val}"
+                    else:
+                        final_url = f"https://dw.uptodown.net/dwn/{val}"
 
         if not final_url:
             raise UptodownError("Download URL attribute not found or APK is externally hosted")
