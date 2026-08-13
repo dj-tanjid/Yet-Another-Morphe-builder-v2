@@ -58,10 +58,15 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
 
     is_cf_challenge = False
     if resp.text:
-        is_cf_challenge = "cf-browser-verification" in resp.text or "Just a moment" in resp.text
+        text_lower = resp.text.lower()
+        if "cf-browser-verification" in text_lower or "just a moment" in text_lower or "attention required" in text_lower:
+            is_cf_challenge = True
 
     if resp.status_code in (403, 503) or resp.status_code >= 500 or is_cf_challenge:
         epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
+        # FAIL FAST: If we are already on attempt 2 and CF is still blocking the datacenter IP, abort retries
+        if attempt >= 2 and is_cf_challenge:
+            raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
         return True
 
     if resp.status_code >= 400:
@@ -131,7 +136,7 @@ class NetworkManager:
             pass
 
     def _bypass_cloudflare_with_playwright(self, url: str, session) -> bool:
-        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually."""
+        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually. Returns cookies."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
@@ -161,10 +166,10 @@ class NetworkManager:
                     try:
                         page.goto(url, wait_until="domcontentloaded", timeout=12000)
                     except Exception:
-                        pass # Ignore timeout, Turnstile might still be solvable
+                        pass 
 
                     start_time = time.time()
-                    while time.time() - start_time < 10: # Very short timeout for CF. Fast fail to Uptodown.
+                    while time.time() - start_time < 12: 
                         content = page.content()
                         title = page.title()
                         
