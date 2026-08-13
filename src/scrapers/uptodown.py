@@ -123,7 +123,6 @@ class UptodownScraper(BaseScraper):
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
             import time
-            import random
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(
@@ -141,18 +140,18 @@ class UptodownScraper(BaseScraper):
                     context.add_cookies(cookies)
                     
                 page = context.new_page()
-                found_urls = []
+                found_url = None
                 
                 def handle_request(request):
+                    nonlocal found_url
                     if "/dwn/" in request.url and ("uptodown.com" in request.url or "uptodown.net" in request.url):
-                        found_urls.append(request.url)
+                        found_url = request.url
                         
                 page.on("request", handle_request)
                 page.goto(url, wait_until="domcontentloaded", timeout=25000)
                 
-                # Check for CF Turnstile on Uptodown and click it
                 start_time = time.time()
-                while time.time() - start_time < 12:
+                while time.time() - start_time < 10:
                     if "Just a moment" not in page.title() and "cf-browser-verification" not in page.content():
                         break
                     try:
@@ -173,15 +172,16 @@ class UptodownScraper(BaseScraper):
                 try:
                     btn = page.locator('#detail-download-button, #button-group-download button, button.download, button:has-text("Download")').first
                     btn.wait_for(state="visible", timeout=10000)
-                    btn.click(timeout=5000)
-                except Exception:
-                    pass
+                    btn.evaluate("node => node.click()")
+                except Exception as e:
+                    epr(f"Playwright btn click failed: {e}")
                 
-                page.wait_for_timeout(6000)
+                for _ in range(15):
+                    if found_url: break
+                    page.wait_for_timeout(1000)
+                    
                 browser.close()
-                
-                if found_urls:
-                    return found_urls[-1]  # Return the last intercepted request (most likely the redirect)
+                return found_url
         except Exception as e:
             epr(f"Playwright Uptodown fallback failed: {e}")
         return None
