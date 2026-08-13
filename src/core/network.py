@@ -81,7 +81,9 @@ class NetworkManager:
         self._domain_mu = threading.Lock()
         self._dest_locks: dict[Path, threading.Lock] = {}
         self._dest_mu = threading.Lock()
-        self._cf_lock = threading.RLock()
+        
+        # A global lock for Playwright to ensure only one thread boots a real browser at a time
+        self._playwright_lock = threading.Lock()
 
     def _create_session(self, browser: str) -> requests.Session:
         sess = requests.Session(impersonate=browser)
@@ -107,95 +109,99 @@ class NetworkManager:
         return self.local.session
 
     def _save_state(self, session) -> None:
-        with self._cf_lock:
-            try:
-                TEMP_DIR.mkdir(parents=True, exist_ok=True)
-                self.browser_cfg.write_text(self.local.browser)
-                self.cookie_jar.write_text(json.dumps(session.cookies.get_dict()))
-            except Exception:
-                pass
+        try:
+            TEMP_DIR.mkdir(parents=True, exist_ok=True)
+            self.browser_cfg.write_text(self.local.browser)
+            self.cookie_jar.write_text(json.dumps(session.cookies.get_dict()))
+        except Exception:
+            pass
 
     def _load_state(self, session) -> None:
-        with self._cf_lock:
-            try:
-                if self.cookie_jar.exists():
-                    cookies = json.loads(self.cookie_jar.read_text())
-                    for k, v in cookies.items():
-                        session.cookies.set(k, v)
-            except Exception:
-                pass
+        try:
+            if self.cookie_jar.exists():
+                cookies = json.loads(self.cookie_jar.read_text())
+                for k, v in cookies.items():
+                    session.cookies.set(k, v)
+        except Exception:
+            pass
 
     def _clear_state(self) -> None:
-        with self._cf_lock:
-            try:
-                if self.browser_cfg.exists(): self.browser_cfg.unlink()
-                if self.cookie_jar.exists(): self.cookie_jar.unlink()
-            except Exception:
-                pass
+        try:
+            if self.browser_cfg.exists(): self.browser_cfg.unlink()
+            if self.cookie_jar.exists(): self.cookie_jar.unlink()
+        except Exception:
+            pass
 
-    def _bypass_cloudflare_with_playwright(self, url: str, session) -> bool:
-        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually."""
+    def _bypass_cloudflare_with_playwright(self, url: str) -> dict:
+        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually. Returns cookies."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
         except ImportError:
-            return False
+            return {}
 
-        epr("Initiating Playwright Stealth (Headless=False) bypass...")
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(
-                    headless=False, 
-                    args=["--disable-blink-features=AutomationControlled", "--disable-gpu", "--no-sandbox"]
-                )
-                context = browser.new_context(
-                    viewport={"width": 1920, "height": 1080},
-                    user_agent=session.headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                )
-                Stealth().apply_stealth_sync(context)
-                page = context.new_page()
-                
-                page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        with self._playwright_lock:
+            epr("Initiating Playwright Stealth (Headless=False) bypass...")
+            try:
+                with sync_playwright() as p:
+                    browser = p.chromium.launch(
+                        headless=False, 
+                        args=[
+                            "--disable-blink-features=AutomationControlled", 
+                            "--disable-gpu", 
+                            "--no-sandbox",
+                            "--disable-web-security"
+                        ]
+                    )
+                    context = browser.new_context(
+                        viewport={"width": 1920, "height": 1080},
+                        user_agent=getattr(self.local, "session", self._create_session("chrome124")).headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    )
+                    Stealth().apply_stealth_sync(context)
+                    page = context.new_page()
+                    
+                    page.goto(url, wait_until="domcontentloaded", timeout=25000)
 
-                # Active Polling and Checkbox clicking mechanism
-                start_time = time.time()
-                while time.time() - start_time < 20: 
-                    try:
-                        title = page.title()
+                    # Simulate Human Mouse Movements & Clicks for Turnstile 
+                    start_time = time.time()
+                    while time.time() - start_time < 30:
                         content = page.content()
+                        title = page.title()
                         
                         if "Just a moment" not in title and "cf-browser-verification" not in content and "Attention Required" not in title:
-                            epr("Cloudflare cleared successfully.")
+                            epr("Cloudflare challenge cleared.")
                             break
                             
-                        # Hunt for the iframe and aggressively click the checkbox
-                        for frame in page.frames:
-                            if "challenges.cloudflare.com" in frame.url:
-                                box = frame.locator('.ctp-checkbox-label, input[type="checkbox"]').first
-                                if box.is_visible():
-                                    box.click(force=True)
-                    except Exception:
-                        pass
+                        try:
+                            for frame in page.frames:
+                                if "challenges.cloudflare.com" in frame.url:
+                                    box = frame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage').first
+                                    if box.is_visible():
+                                        # Physically move the mouse and hold click
+                                        box_box = box.bounding_box()
+                                        if box_box:
+                                            x = box_box["x"] + box_box["width"] / 2
+                                            y = box_box["y"] + box_box["height"] / 2
+                                            page.mouse.move(x, y)
+                                            page.wait_for_timeout(random.randint(100, 300))
+                                            page.mouse.down()
+                                            page.wait_for_timeout(random.randint(50, 150))
+                                            page.mouse.up()
+                        except Exception:
+                            pass
+                        
+                        page.wait_for_timeout(2000)
                     
-                    page.wait_for_timeout(1500)
-                
-                for c in context.cookies():
-                    session.cookies.set(c["name"], c["value"], domain=c["domain"])
-                
-                ua = page.evaluate("navigator.userAgent")
-                session.headers.update({"User-Agent": ua})
-                
-                browser.close()
-                self._save_state(session)
-                return True
-        except Exception as e:
-            epr(f"Playwright bypass failed: {e}")
-            return False
+                    cookies_dict = {c["name"]: c["value"] for c in context.cookies()}
+                    browser.close()
+                    return cookies_dict
+            except Exception as e:
+                epr(f"Playwright bypass failed: {e}")
+                return {}
 
     def _rotate_browser(self, url: str) -> None:
         """Safely tears down the thread's blocked session and rotates fingerprints globally."""
-        with self._cf_lock:
-            self._clear_state()
+        self._clear_state()
             
         try:
             self.local.session.close()
@@ -206,8 +212,11 @@ class NetworkManager:
         self.local.browser = random.choice(available_browsers)
         self.local.session = self._create_session(self.local.browser)
         
-        with self._cf_lock:
-            self._bypass_cloudflare_with_playwright(url, self.local.session)
+        cookies = self._bypass_cloudflare_with_playwright(url)
+        for k, v in cookies.items():
+            self.local.session.cookies.set(k, v)
+            
+        self._save_state(self.local.session)
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
