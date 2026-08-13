@@ -5,9 +5,14 @@
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
 # Canonical source: https://github.com/krvstek/uni-apks
+#
+# Licensed under the GNU GPLv3. You may modify this file,
+# but you MUST keep this original copyright notice intact
+# and prominently state any changes made.
+# See the AUTHORS file in the root directory for details.
 # ---------------------------------------------------------
 
-import json
+import json  # noqa: I001
 import re
 from pathlib import Path
 
@@ -15,6 +20,7 @@ from src.core.network import NetworkManager, ResourceNotFoundError
 from src.scrapers.base import AppMetadata, BaseScraper, DownloadResult, ScraperError, _parse_html
 
 _DEFAULT_ARCH: frozenset[str] = frozenset({"arm64-v8a, armeabi-v7a, x86_64", "arm64-v8a, armeabi-v7a, x86, x86_64", "arm64-v8a, armeabi-v7a"})
+
 
 class UptodownError(ScraperError):
     pass
@@ -31,17 +37,38 @@ class UptodownScraper(BaseScraper):
             pkg_html = self.net.get(url)
 
         soup_pkg = _parse_html(pkg_html)
+        pkg_name = None
+        
+        # 1. Try table
         th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
         if th and (td := th.find_next_sibling("td")):
             pkg_name = td.get_text(strip=True)
-        else:
+            
+        # 2. Try Google Play link
+        if not pkg_name:
+            gp = soup_pkg.find("a", href=re.compile(r"play\.google\.com/store/apps/details\?id="))
+            if gp:
+                m = re.search(r"id=([a-zA-Z0-9_.]+)", gp.get("href", ""))
+                if m: pkg_name = m.group(1)
+                
+        # 3. Try meta tag
+        if not pkg_name:
+            meta = soup_pkg.find("meta", property="al:android:package")
+            if meta: pkg_name = meta.get("content")
+
+        if not pkg_name:
             raise UptodownError("Package name not found")
 
         detail_app = soup_pkg.select_one("#detail-app-name")
         if not detail_app or "data-code" not in detail_app.attrs:
-            raise UptodownError("App data-code not found")
-                
-        data_code = str(detail_app["data-code"])
+            m = re.search(r'data-code=["\'](\d+)["\']', pkg_html)
+            if m:
+                data_code = m.group(1)
+            else:
+                raise UptodownError("App data-code not found")
+        else:
+            data_code = str(detail_app["data-code"])
+            
         self._datacode_cache[url] = data_code
 
         versions = []
@@ -82,38 +109,30 @@ class UptodownScraper(BaseScraper):
             soup_ver = _parse_html(resp)
 
         final_url = None
-        dl_btn = soup_ver.select_one("#detail-download-button")
         
-        if dl_btn:
-            dl_url = dl_btn.get("data-url", "").strip()
-            if dl_url.startswith("http"):
-                pass
-            elif len(dl_url) > 10 and dl_url != "apps":
-                if dl_url.startswith("/dwn/"):
-                    final_url = f"https://dw.uptodown.net{dl_url}"
-                else:
-                    final_url = f"https://dw.uptodown.net/dwn/{dl_url}"
-            else:
-                href = dl_btn.get("href", "").strip()
-                if "dw.uptodown" in href:
-                    final_url = href
-
-        # Updated Regex Fallback: Matches full nested URL structure safely
+        # Robust URL extraction specifically catching the dw.uptodown.net format
+        links = re.findall(r'(https://dw\.uptodown\.(?:com|net)/dwn/[^\s"\'<>]+)', resp)
+        if links:
+            valid_links = [l for l in links if len(l.split("/dwn/")[-1]) > 20]
+            if valid_links:
+                final_url = valid_links[0]
+                
         if not final_url:
-            match = re.search(r'(https://dw\.uptodown\.(?:com|net)/dwn/[A-Za-z0-9_/\-+=.]+)', resp)
-            if match and len(match.group(1)) > 40:
-                final_url = match.group(1)
-            else:
-                match = re.search(r'data-url=["\']([A-Za-z0-9_/\-+=.]{40,})["\']', resp)
-                if match:
-                    val = match.group(1)
-                    if val.startswith("/dwn/"):
-                        final_url = f"https://dw.uptodown.net{val}"
-                    else:
-                        final_url = f"https://dw.uptodown.net/dwn/{val}"
+            dl_btn = soup_ver.select_one("#detail-download-button")
+            if dl_btn:
+                dl_url = dl_btn.get("data-url", "").strip()
+                if dl_url and len(dl_url) > 20:
+                    final_url = f"https://dw.uptodown.com/dwn/{dl_url}"
+                else:
+                    href = dl_btn.get("href", "").strip()
+                    if "dw.uptodown" in href:
+                        final_url = href
 
         if not final_url:
             raise UptodownError("Download URL attribute not found or APK is externally hosted")
+            
+        if "play.google.com" in final_url:
+            raise UptodownError("APK is externally hosted on Google Play")
 
         out_path = dest.with_suffix(".apkm") if is_bundle else dest
         self.net.download(final_url, out_path)
