@@ -40,19 +40,16 @@ class UptodownScraper(BaseScraper):
         soup_pkg = _parse_html(pkg_html)
         pkg_name = None
         
-        # 1. Try table
         th = soup_pkg.find("th", string=re.compile("Package Name", re.I))
         if th and (td := th.find_next_sibling("td")):
             pkg_name = td.get_text(strip=True)
             
-        # 2. Try Google Play link
         if not pkg_name:
             gp = soup_pkg.find("a", href=re.compile(r"play\.google\.com/store/apps/details\?id="))
             if gp:
                 m = re.search(r"id=([a-zA-Z0-9_.]+)", gp.get("href", ""))
                 if m: pkg_name = m.group(1)
                 
-        # 3. Try meta tag
         if not pkg_name:
             meta = soup_pkg.find("meta", property="al:android:package")
             if meta: pkg_name = meta.get("content")
@@ -84,27 +81,31 @@ class UptodownScraper(BaseScraper):
         return AppMetadata(pkg_name=pkg_name, versions=versions)
 
     def _extract_download_link(self, html_text: str, soup) -> str | None:
-        """Aggressive deep-search for the final CDN link."""
+        """Aggressive deep-search for the final CDN link, catching relative paths."""
+        # 1. Search tags safely checking for relative /dwn/ paths
         for tag in soup.find_all(True):
             if tag.has_attr("data-url"):
                 val = tag["data-url"].strip()
-                if "dw.uptodown" in val or "core.uptodown" in val:
+                if "dw.uptodown" in val or "core.uptodown" in val or val.startswith("/dwn/"):
                     if val.startswith("http"): return val
                     if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
                     return f"https://dw.uptodown.com/dwn/{val}"
             
             if tag.name == "a" and tag.has_attr("href"):
                 val = tag["href"].strip()
-                if "dw.uptodown" in val or "core.uptodown" in val:
+                if "dw.uptodown" in val or "core.uptodown" in val or val.startswith("/dwn/"):
                     if val.startswith("http"): return val
+                    if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
 
+        # 2. Strict Regex for hardcoded absolute URLs
         match = re.search(r'(https://(?:dw|core)\.uptodown\.(?:com|net)/dwn/[A-Za-z0-9_/\-+=.]+)', html_text)
         if match: return match.group(1)
 
+        # 3. Broad Regex for raw JS variables and fallback data attributes
         match = re.search(r'data-url=["\']([^"\']+)["\']', html_text)
         if match:
             val = match.group(1).strip()
-            if "dw.uptodown" in val or "core.uptodown" in val:
+            if "dw.uptodown" in val or "core.uptodown" in val or val.startswith("/dwn/"):
                 if val.startswith("http"): return val
                 if val.startswith("/dwn/"): return f"https://dw.uptodown.net{val}"
                 return f"https://dw.uptodown.com/dwn/{val}"
@@ -194,7 +195,6 @@ class UptodownScraper(BaseScraper):
 
         for file_id, is_bundle in candidates:
             if not is_bundle:
-                # Fallback to straight ID if -x is missing
                 try:
                     res = self.net.get(f"{url}/download/{file_id}-x")
                     return res, False
