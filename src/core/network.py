@@ -64,9 +64,6 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
 
     if resp.status_code in (403, 503) or resp.status_code >= 500 or is_cf_challenge:
         epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
-        # FAIL FAST: If we are already on attempt 2 and CF is still blocking the datacenter IP, abort retries
-        if attempt >= 2 and is_cf_challenge:
-            raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
         return True
 
     if resp.status_code >= 400:
@@ -112,31 +109,34 @@ class NetworkManager:
         return self.local.session
 
     def _save_state(self, session) -> None:
-        try:
-            TEMP_DIR.mkdir(parents=True, exist_ok=True)
-            self.browser_cfg.write_text(self.local.browser)
-            self.cookie_jar.write_text(json.dumps(session.cookies.get_dict()))
-        except Exception:
-            pass
+        with self._cf_lock:
+            try:
+                TEMP_DIR.mkdir(parents=True, exist_ok=True)
+                self.browser_cfg.write_text(self.local.browser)
+                self.cookie_jar.write_text(json.dumps(session.cookies.get_dict()))
+            except Exception:
+                pass
 
     def _load_state(self, session) -> None:
-        try:
-            if self.cookie_jar.exists():
-                cookies = json.loads(self.cookie_jar.read_text())
-                for k, v in cookies.items():
-                    session.cookies.set(k, v)
-        except Exception:
-            pass
+        with self._cf_lock:
+            try:
+                if self.cookie_jar.exists():
+                    cookies = json.loads(self.cookie_jar.read_text())
+                    for k, v in cookies.items():
+                        session.cookies.set(k, v)
+            except Exception:
+                pass
 
     def _clear_state(self) -> None:
-        try:
-            if self.browser_cfg.exists(): self.browser_cfg.unlink()
-            if self.cookie_jar.exists(): self.cookie_jar.unlink()
-        except Exception:
-            pass
+        with self._cf_lock:
+            try:
+                if self.browser_cfg.exists(): self.browser_cfg.unlink()
+                if self.cookie_jar.exists(): self.cookie_jar.unlink()
+            except Exception:
+                pass
 
     def _bypass_cloudflare_with_playwright(self, url: str, session) -> bool:
-        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually. Returns cookies."""
+        """Boot a visible browser inside Xvfb to solve Cloudflare Turnstile visually."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
@@ -169,12 +169,15 @@ class NetworkManager:
                         pass 
 
                     start_time = time.time()
+                    challenge_cleared = False
+                    
                     while time.time() - start_time < 12: 
                         content = page.content()
                         title = page.title()
                         
                         if "Just a moment" not in title and "cf-browser-verification" not in content and "Attention Required" not in title:
                             epr("Cloudflare challenge cleared.")
+                            challenge_cleared = True
                             break
                             
                         try:
@@ -195,6 +198,11 @@ class NetworkManager:
                             pass
                         
                         page.wait_for_timeout(1000)
+                        
+                    if not challenge_cleared:
+                        epr("Playwright timeout exceeded, moving on.")
+                        browser.close()
+                        return False
                     
                     for c in context.cookies():
                         session.cookies.set(c["name"], c["value"], domain=c["domain"])
@@ -209,19 +217,24 @@ class NetworkManager:
                 epr(f"Playwright bypass failed or timed out: {e}")
                 return False
 
-    def _rotate_browser(self, url: str) -> None:
-        self._clear_state()
+    def _rotate_browser(self, url: str) -> bool:
+        """Safely tears down the thread's blocked session and rotates fingerprints globally."""
+        with self._cf_lock:
+            self._clear_state()
             
-        try:
-            self.local.session.close()
-        except Exception:
-            pass
+            try:
+                self.local.session.close()
+            except Exception:
+                pass
+                
+            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
+            self.local.browser = random.choice(available_browsers)
+            self.local.session = self._create_session(self.local.browser)
             
-        available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
-        self.local.browser = random.choice(available_browsers)
-        self.local.session = self._create_session(self.local.browser)
-        
-        self._bypass_cloudflare_with_playwright(url, self.local.session)
+            success = self._bypass_cloudflare_with_playwright(url, self.local.session)
+            if success:
+                self._save_state(self.local.session)
+            return success
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
@@ -234,7 +247,9 @@ class NetworkManager:
                     resp = sess.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
 
                 if _handle_status(resp, url, attempt):
-                    self._rotate_browser(url)
+                    success = self._rotate_browser(url)
+                    if not success and attempt >= 2:
+                        raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                     _retry_sleep(attempt)
                     self._load_state(self.local.session)
                     continue
@@ -246,7 +261,9 @@ class NetworkManager:
             except req_exc.RequestException as exc:
                 last_exc = exc
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
-                self._rotate_browser(url)
+                success = self._rotate_browser(url)
+                if not success and attempt >= 2:
+                    raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                 _retry_sleep(attempt)
                 self._load_state(self.local.session)
         raise NetworkError(f"Request failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
@@ -272,7 +289,9 @@ class NetworkManager:
                         resp = sess.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
 
                     if _handle_status(resp, url, attempt):
-                        self._rotate_browser(url)
+                        success = self._rotate_browser(url)
+                        if not success and attempt >= 2:
+                            raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                         _retry_sleep(attempt)
                         self._load_state(self.local.session)
                         continue
@@ -290,7 +309,9 @@ class NetworkManager:
                     tmp.unlink(missing_ok=True)
                     last_exc = exc
                     epr(f"Download error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
-                    self._rotate_browser(url)
+                    success = self._rotate_browser(url)
+                    if not success and attempt >= 2:
+                        raise NetworkError(f"Cloudflare hard-blocked Datacenter IP for {url}. Aborting retries.")
                     _retry_sleep(attempt)
                     self._load_state(self.local.session)
             raise NetworkError(f"Download failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
