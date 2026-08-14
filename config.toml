@@ -30,7 +30,7 @@ uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 "github:crimera/piko" = { version = "dev", include = ["Browse tweet object", "Dynamic color"] } # Fetch Latest Dev Patch
 # "gitlab:inotia00/x-shim" = []
 
-[Instagram]
+[Instagram-Piko]
 enabled = true
 app-name = "Instagram"
 brand = "Piko"
@@ -42,12 +42,12 @@ github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
 arch = "arm64-v8a"
 # patcher-args = "-e 'Theme' -Oamoled=true"
 
-[Instagram.patches]
+[Instagram-Piko.patches]
 # "github:crimera/piko" = { include = ["Theme"], exclude = ["Unlock Plus benefits"] } #Fetch Latest Stable Patch
 "github:crimera/piko" = { version = "dev", include = ["Theme"], exclude = ["Unlock Plus benefits"] } # Fetch Latest Dev Patch
 
 
-[Facebook]
+[Facebook-De-Vanced]
 enabled = true
 app-name = "Facebook"
 brand = "De-Vanced"
@@ -59,10 +59,10 @@ uptodown-dlurl = "https://facebook.en.uptodown.com/android"
 arch = "arm64-v8a"
 patcher-args = "--continue-on-error"
 
-[Facebook.patches]
+[Facebook-De-Vanced.patches]
 "github:RookieEnough/De-Vanced" = []
 
-[Messenger]
+[Messenger-De-Vanced]
 enabled = true
 app-name = "Facebook Messenger"
 brand = "De-Vanced"
@@ -74,10 +74,10 @@ apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messe
 uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
 arch = "arm64-v8a"
 
-[Messenger.patches]
+[Messenger-De-Vanced.patches]
 "github:RookieEnough/De-Vanced" = []
 
-[Threads]
+[Threads-De-Vanced]
 enabled = true
 app-name = "Threads"
 brand = "De-Vanced"
@@ -89,9 +89,41 @@ apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/threads-an-instagram-
 uptodown-dlurl = "https://threads.en.uptodown.com/android"
 arch = "arm64-v8a"
 
-[Threads.patches]
+[Threads-De-Vanced.patches]
 "github:RookieEnough/De-Vanced" = []
 
+
+[Facebook-Rushi]
+enabled = true
+app-name = "Facebook"
+brand = "Rushi"
+version = "latest"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.katana"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
+uptodown-dlurl = "https://facebook.en.uptodown.com/android"
+arch = "arm64-v8a"
+patcher-args = "--continue-on-error"
+
+[Facebook-Rushi.patches]
+# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Messenger-Rushi]
+enabled = true
+app-name = "Facebook Messenger"
+brand = "Rushi"
+version = "latest"
+# version = "573.0.0.44.88"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.orca"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger"
+uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+arch = "arm64-v8a"
+
+[Messenger-Rushi.patches]
+# "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 ["1.1.1.1"]
 enabled = true
