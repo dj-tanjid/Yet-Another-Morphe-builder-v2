@@ -35,12 +35,12 @@ enabled = true
 app-name = "Instagram"
 brand = "Piko"
 version = "latest"
-# version = "430.0.0.53.80"
+# version = "439.0.0.37.89"
+arch = "arm64-v8a"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 # github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
 github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.android"
-arch = "arm64-v8a"
 # patcher-args = "-e 'Theme' -Oamoled=true"
 
 [Instagram-Piko.patches]
