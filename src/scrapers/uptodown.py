@@ -118,11 +118,13 @@ class UptodownScraper(BaseScraper):
                 return f"https://dw.uptodown.com/dwn/{val}"
         return None
 
-    def _download_with_playwright(self, url: str, dest: Path) -> bool:
-        """Fallback: Boots a visible browser, solves Turnstile, clicks the button, and hooks the native download stream."""
+    def _extract_with_playwright(self, url: str) -> str | None:
+        """Fallback: Boots a visible browser, solves Turnstile, clicks the button, and captures the CDN redirect URL."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
+            import time
+            import random
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(
@@ -136,7 +138,6 @@ class UptodownScraper(BaseScraper):
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
                     is_mobile=False,
                     has_touch=False,
-                    accept_downloads=True,
                     extra_http_headers={
                         "Sec-Ch-Ua-Mobile": "?0",
                         "Sec-Ch-Ua-Platform": '"Windows"'
@@ -144,11 +145,32 @@ class UptodownScraper(BaseScraper):
                 )
                 Stealth().apply_stealth_sync(context)
                 
+                # Apply current session cookies to bypass CF faster
                 cookies = [{"name": k, "value": v, "domain": ".uptodown.com", "path": "/"} for k, v in self.net._get_session().cookies.get_dict().items()]
                 if cookies:
                     context.add_cookies(cookies)
                     
                 page = context.new_page()
+                found_url = None
+
+                # Intercept the redirect to the CDN to steal the URL
+                def handle_route(route):
+                    nonlocal found_url
+                    req = route.request
+                    if req.method == "GET":
+                        if "dw.uptodown" in req.url or "core.uptodown" in req.url:
+                            if "/dwn/" in req.url:
+                                found_url = req.url
+                                route.abort()
+                                return
+                        if req.url.endswith(".apk") or req.url.endswith(".xapk") or req.url.endswith(".apkm"):
+                            found_url = req.url
+                            route.abort()
+                            return
+                    route.continue_()
+
+                page.route("**/*", handle_route)
+                
                 epr(f"[*] Navigating Playwright to {url}...")
                 page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 
@@ -160,7 +182,17 @@ class UptodownScraper(BaseScraper):
                             if "challenges.cloudflare.com" in frame.url:
                                 box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
                                 if box.is_visible():
-                                    box.click(force=True)
+                                    box_box = box.bounding_box()
+                                    if box_box:
+                                        x = box_box["x"] + box_box["width"] / 2
+                                        y = box_box["y"] + box_box["height"] / 2
+                                        page.mouse.move(x, y)
+                                        page.wait_for_timeout(random.randint(100, 200))
+                                        page.mouse.down()
+                                        page.wait_for_timeout(random.randint(50, 100))
+                                        page.mouse.up()
+                                    else:
+                                        box.click(force=True)
                     except Exception:
                         pass
                     page.wait_for_timeout(1000)
@@ -177,44 +209,38 @@ class UptodownScraper(BaseScraper):
                     btn.wait_for(state="attached", timeout=15000)
                     btn.scroll_into_view_if_needed()
                     
-                    epr("[*] Button found. Triggering native download stream...")
-                    with page.expect_download(timeout=90000) as download_info:
-                        # MUST use a physical click for Turnstile to validate it properly
-                        btn.click(delay=100, force=True)
+                    epr("[*] Button found. Clicking to extract CDN URL...")
+                    # Physical click to trigger trusted events
+                    btn.click(delay=100, force=True)
+                    
+                    # Wait for the network interceptor to catch the URL
+                    wait_start = time.time()
+                    while time.time() - wait_start < 20:
+                        if found_url:
+                            epr(f"[*] Extracted CDN URL: {found_url}")
+                            break
                         
-                        # Post-click Turnstile Check (The download button triggers the Cloudflare overlay)
-                        loop_start = time.time()
-                        while time.time() - loop_start < 25:
-                            try:
-                                for frame in page.frames:
-                                    if "challenges.cloudflare.com" in frame.url:
-                                        box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
-                                        if box.is_visible():
-                                            box.hover()
-                                            page.mouse.down()
-                                            page.wait_for_timeout(50)
-                                            page.mouse.up()
-                            except Exception:
-                                pass
-                            page.wait_for_timeout(1000)
+                        # In case a second Turnstile pops up after clicking
+                        try:
+                            for frame in page.frames:
+                                if "challenges.cloudflare.com" in frame.url:
+                                    box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
+                                    if box.is_visible():
+                                        box.click(force=True)
+                        except Exception:
+                            pass
+                            
+                        page.wait_for_timeout(1000)
                         
-                    download = download_info.value
-                    epr(f"[*] Downloading {download.suggested_filename} to disk...")
-                    
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    download.save_as(dest)
-                    
-                    browser.close()
-                    return True
-                    
                 except Exception as e:
-                    epr(f"Playwright btn click / download failed: {e}")
+                    epr(f"Playwright btn click failed: {e}")
                 
                 browser.close()
+                return found_url
         except Exception as e:
             epr(f"Playwright Uptodown fallback failed: {e}")
             
-        return False
+        return None
 
     def download(self, url: str, version: str, dest: Path, arch: str, dpi: str) -> DownloadResult:
         apparch: set[str] = set(_DEFAULT_ARCH)
@@ -269,12 +295,17 @@ class UptodownScraper(BaseScraper):
 
         epr(f"DEBUG: Static URL extraction failed. Running Playwright natively on {page_url}...")
         
-        success = self._download_with_playwright(page_url, out_path)
+        final_url = self._extract_with_playwright(page_url)
         
-        if not success:
+        if not final_url:
             Path(f"uptodown_error_{dest.stem}.html").write_text(resp, encoding="utf-8")
-            raise UptodownError("Playwright download hook failed or URL attribute not found")
+            raise UptodownError("Playwright URL hook failed or URL attribute not found")
             
+        if "play.google.com" in final_url:
+            raise UptodownError("APK is externally hosted on Google Play")
+
+        # Hands the extracted CDN URL back to NetworkManager
+        self.net.download(final_url, out_path)
         return DownloadResult(path=out_path, is_bundle=is_bundle)
 
     def _find_version_url(self, url: str, data_code: str, version: str) -> dict:
@@ -290,6 +321,7 @@ class UptodownScraper(BaseScraper):
                 break
                 
             for entry in data:
+                # Fuzzy match to account for API differences
                 if version.lower() not in str(entry.get("version", "")).lower():
                     continue
                 ver_url_dict = entry.get("versionURL") or {}
