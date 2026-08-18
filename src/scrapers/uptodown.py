@@ -136,7 +136,6 @@ class UptodownScraper(BaseScraper):
                 )
                 Stealth().apply_stealth_sync(context)
                 
-                # Apply current session cookies to bypass CF faster
                 cookies = [{"name": k, "value": v, "domain": ".uptodown.com", "path": "/"} for k, v in self.net._get_session().cookies.get_dict().items()]
                 if cookies:
                     context.add_cookies(cookies)
@@ -145,11 +144,9 @@ class UptodownScraper(BaseScraper):
                 epr(f"[*] Navigating Playwright to {url}...")
                 page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 
-                # Cloudflare Turnstile Bypass
+                # Pre-click Cloudflare Turnstile Bypass
                 start_time = time.time()
                 while time.time() - start_time < 15:
-                    if "Just a moment" not in page.title() and "cf-browser-verification" not in page.content():
-                        break
                     try:
                         for frame in page.frames:
                             if "challenges.cloudflare.com" in frame.url:
@@ -168,13 +165,26 @@ class UptodownScraper(BaseScraper):
 
                 # Target the big green button and intercept the file
                 try:
+                    # Using state="attached" because standard visibility logic can be tricked by invisible overlays
                     btn = page.locator('#detail-download-button, button.download, .button.download, button:has-text("Download")').first
-                    btn.wait_for(state="visible", timeout=15000)
+                    btn.wait_for(state="attached", timeout=15000)
                     
                     epr("[*] Button found. Triggering native download stream...")
                     with page.expect_download(timeout=90000) as download_info:
-                        # JS evaluation ensures we bypass hidden overlays intercepting the click
                         btn.evaluate("node => node.click()")
+                        
+                        # Post-click Turnstile Check (The download button triggers the Cloudflare overlay)
+                        start_time = time.time()
+                        while time.time() - start_time < 20:
+                            try:
+                                for frame in page.frames:
+                                    if "challenges.cloudflare.com" in frame.url:
+                                        box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
+                                        if box.is_visible():
+                                            box.click(force=True)
+                            except Exception:
+                                pass
+                            page.wait_for_timeout(1000)
                         
                     download = download_info.value
                     epr(f"[*] Downloading {download.suggested_filename} to disk...")
@@ -239,14 +249,12 @@ class UptodownScraper(BaseScraper):
         out_path = dest.with_suffix(".apkm") if is_bundle else dest
         final_url = self._extract_download_link(resp, soup_ver)
 
-        # Path 1: Static URL Extract Success
         if final_url:
             if "play.google.com" in final_url:
                 raise UptodownError("APK is externally hosted on Google Play")
             self.net.download(final_url, out_path)
             return DownloadResult(path=out_path, is_bundle=is_bundle)
 
-        # Path 2: Fallback to Native Browser Download
         epr(f"DEBUG: Static URL extraction failed. Running Playwright natively on {page_url}...")
         
         success = self._download_with_playwright(page_url, out_path)
@@ -270,7 +278,6 @@ class UptodownScraper(BaseScraper):
                 break
                 
             for entry in data:
-                # Fuzzy match to account for API differences
                 if version.lower() not in str(entry.get("version", "")).lower():
                     continue
                 ver_url_dict = entry.get("versionURL") or {}
