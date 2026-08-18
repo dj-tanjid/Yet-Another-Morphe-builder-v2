@@ -129,10 +129,18 @@ class UptodownScraper(BaseScraper):
                     headless=False, 
                     args=["--no-sandbox", "--disable-gpu", "--disable-blink-features=AutomationControlled"]
                 )
+                
+                # Enforce strict Windows Desktop profile to bypass Uptodown's mobile app trap
                 context = browser.new_context(
                     viewport={"width": 1920, "height": 1080},
-                    user_agent=self.net._get_session().headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                    accept_downloads=True
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    is_mobile=False,
+                    has_touch=False,
+                    accept_downloads=True,
+                    extra_http_headers={
+                        "Sec-Ch-Ua-Mobile": "?0",
+                        "Sec-Ch-Ua-Platform": '"Windows"'
+                    }
                 )
                 Stealth().apply_stealth_sync(context)
                 
@@ -163,25 +171,29 @@ class UptodownScraper(BaseScraper):
                 except Exception:
                     pass
 
-                # Target the big green button and intercept the file
+                # Target the big green button
                 try:
-                    # Using state="attached" because standard visibility logic can be tricked by invisible overlays
                     btn = page.locator('#detail-download-button, button.download, .button.download, button:has-text("Download")').first
                     btn.wait_for(state="attached", timeout=15000)
+                    btn.scroll_into_view_if_needed()
                     
                     epr("[*] Button found. Triggering native download stream...")
                     with page.expect_download(timeout=90000) as download_info:
-                        btn.evaluate("node => node.click()")
+                        # MUST use a physical click for Turnstile to validate it properly
+                        btn.click(delay=100, force=True)
                         
                         # Post-click Turnstile Check (The download button triggers the Cloudflare overlay)
-                        start_time = time.time()
-                        while time.time() - start_time < 20:
+                        loop_start = time.time()
+                        while time.time() - loop_start < 25:
                             try:
                                 for frame in page.frames:
                                     if "challenges.cloudflare.com" in frame.url:
                                         box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
                                         if box.is_visible():
-                                            box.click(force=True)
+                                            box.hover()
+                                            page.mouse.down()
+                                            page.wait_for_timeout(50)
+                                            page.mouse.up()
                             except Exception:
                                 pass
                             page.wait_for_timeout(1000)
