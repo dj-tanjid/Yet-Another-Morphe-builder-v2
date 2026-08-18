@@ -15,6 +15,7 @@
 import json  # noqa: I001
 import re
 import time
+import random
 from pathlib import Path
 
 from src.core.logger import epr
@@ -123,8 +124,6 @@ class UptodownScraper(BaseScraper):
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
-            import time
-            import random
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(
@@ -145,7 +144,6 @@ class UptodownScraper(BaseScraper):
                 )
                 Stealth().apply_stealth_sync(context)
                 
-                # Apply current session cookies to bypass CF faster
                 cookies = [{"name": k, "value": v, "domain": ".uptodown.com", "path": "/"} for k, v in self.net._get_session().cookies.get_dict().items()]
                 if cookies:
                     context.add_cookies(cookies)
@@ -153,23 +151,17 @@ class UptodownScraper(BaseScraper):
                 page = context.new_page()
                 found_url = None
 
-                # Intercept the redirect to the CDN to steal the URL
-                def handle_route(route):
+                # Intercept the network request to steal the CDN URL instead of downloading it in Playwright
+                def handle_request(req):
                     nonlocal found_url
-                    req = route.request
                     if req.method == "GET":
-                        if "dw.uptodown" in req.url or "core.uptodown" in req.url:
-                            if "/dwn/" in req.url:
-                                found_url = req.url
-                                route.abort()
-                                return
-                        if req.url.endswith(".apk") or req.url.endswith(".xapk") or req.url.endswith(".apkm"):
+                        if "/dwn/" in req.url and ("uptodown.com" in req.url or "uptodown.net" in req.url):
                             found_url = req.url
-                            route.abort()
-                            return
-                    route.continue_()
+                        elif req.url.endswith(".apk") or req.url.endswith(".xapk") or req.url.endswith(".apkm"):
+                            found_url = req.url
 
-                page.route("**/*", handle_route)
+                page.on("request", handle_request)
+                context.on("page", lambda new_page: new_page.on("request", handle_request))
                 
                 epr(f"[*] Navigating Playwright to {url}...")
                 page.goto(url, wait_until="domcontentloaded", timeout=30000)
@@ -182,17 +174,7 @@ class UptodownScraper(BaseScraper):
                             if "challenges.cloudflare.com" in frame.url:
                                 box = frame.locator('input[type="checkbox"], .ctp-checkbox-label').first
                                 if box.is_visible():
-                                    box_box = box.bounding_box()
-                                    if box_box:
-                                        x = box_box["x"] + box_box["width"] / 2
-                                        y = box_box["y"] + box_box["height"] / 2
-                                        page.mouse.move(x, y)
-                                        page.wait_for_timeout(random.randint(100, 200))
-                                        page.mouse.down()
-                                        page.wait_for_timeout(random.randint(50, 100))
-                                        page.mouse.up()
-                                    else:
-                                        box.click(force=True)
+                                    box.click(force=True)
                     except Exception:
                         pass
                     page.wait_for_timeout(1000)
@@ -206,21 +188,33 @@ class UptodownScraper(BaseScraper):
                 # Target the big green button
                 try:
                     btn = page.locator('#detail-download-button, button.download, .button.download, button:has-text("Download")').first
-                    btn.wait_for(state="attached", timeout=15000)
+                    btn.wait_for(state="attached", timeout=10000)
+                except Exception:
+                    # If button not found (e.g. dead variant URL), strip ID and fall back to the base download page
+                    if "/download/" in page.url:
+                        base_dl_url = page.url.split("/download/")[0] + "/download"
+                        epr(f"[*] Button not found. Falling back to base page: {base_dl_url}")
+                        page.goto(base_dl_url, wait_until="domcontentloaded", timeout=15000)
+                        btn = page.locator('#detail-download-button, button.download, .button.download, button:has-text("Download")').first
+                        btn.wait_for(state="attached", timeout=15000)
+                    else:
+                        raise
+
+                try:
                     btn.scroll_into_view_if_needed()
-                    
                     epr("[*] Button found. Clicking to extract CDN URL...")
+                    
                     # Physical click to trigger trusted events
                     btn.click(delay=100, force=True)
                     
                     # Wait for the network interceptor to catch the URL
                     wait_start = time.time()
-                    while time.time() - wait_start < 20:
+                    while time.time() - wait_start < 25:
                         if found_url:
-                            epr(f"[*] Extracted CDN URL: {found_url}")
+                            epr(f"[+] Extracted CDN URL: {found_url}")
                             break
                         
-                        # In case a second Turnstile pops up after clicking
+                        # Catch Turnstile popups that trigger AFTER clicking download
                         try:
                             for frame in page.frames:
                                 if "challenges.cloudflare.com" in frame.url:
@@ -304,7 +298,7 @@ class UptodownScraper(BaseScraper):
         if "play.google.com" in final_url:
             raise UptodownError("APK is externally hosted on Google Play")
 
-        # Hands the extracted CDN URL back to NetworkManager
+        # Hand the extracted CDN URL back to NetworkManager
         self.net.download(final_url, out_path)
         return DownloadResult(path=out_path, is_bundle=is_bundle)
 
