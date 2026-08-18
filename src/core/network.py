@@ -53,7 +53,7 @@ def _retry_sleep(attempt: int) -> None:
         time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.5))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
-    if resp.status_code in (404, 410):
+    if resp.status_code == 404:
         raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
 
     is_cf_challenge = False
@@ -62,7 +62,8 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
         if "cf-browser-verification" in text_lower or "just a moment" in text_lower or "attention required" in text_lower:
             is_cf_challenge = True
 
-    if resp.status_code in (401, 403, 429, 503) or resp.status_code >= 500 or is_cf_challenge:
+    # Treat 410 the same as 403 to defeat Uptodown's anti-bot block
+    if resp.status_code in (401, 403, 410, 429, 503) or resp.status_code >= 500 or is_cf_challenge:
         epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
         return True
 
@@ -171,7 +172,7 @@ class NetworkManager:
                     start_time = time.time()
                     challenge_cleared = False
                     
-                    while time.time() - start_time < 25: 
+                    while time.time() - start_time < 30: 
                         content = page.content()
                         title = page.title()
                         
@@ -185,11 +186,20 @@ class NetworkManager:
                                 if "challenges.cloudflare.com" in frame.url:
                                     box = frame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage').first
                                     if box.is_visible():
+                                        box_box = box.bounding_box()
+                                        if box_box:
+                                            x = box_box["x"] + box_box["width"] / 2
+                                            y = box_box["y"] + box_box["height"] / 2
+                                            page.mouse.move(x, y)
+                                            page.wait_for_timeout(random.randint(100, 200))
+                                            page.mouse.down()
+                                            page.wait_for_timeout(random.randint(50, 100))
+                                            page.mouse.up()
                                         box.click(force=True)
                         except Exception:
                             pass
                         
-                        page.wait_for_timeout(1500)
+                        page.wait_for_timeout(1000)
                         
                     if not challenge_cleared:
                         epr("Playwright timeout exceeded, moving on.")
