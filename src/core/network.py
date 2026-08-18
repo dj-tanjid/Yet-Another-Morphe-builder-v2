@@ -53,8 +53,7 @@ def _retry_sleep(attempt: int) -> None:
         time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.5))
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
-    # Restored 410 here so Uptodown deprecations fall back cleanly
-    if resp.status_code in (404, 410):
+    if resp.status_code == 404:
         raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
 
     is_cf_challenge = False
@@ -63,7 +62,8 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
         if "cf-browser-verification" in text_lower or "just a moment" in text_lower or "attention required" in text_lower:
             is_cf_challenge = True
 
-    if resp.status_code in (401, 403, 429, 503) or resp.status_code >= 500 or is_cf_challenge:
+    # 410 is heavily abused by Uptodown to flag automated downloaders. Reverting to rotation.
+    if resp.status_code in (401, 403, 410, 429, 503) or resp.status_code >= 500 or is_cf_challenge:
         epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
         return True
 
