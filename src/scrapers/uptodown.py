@@ -14,6 +14,7 @@
 
 import json  # noqa: I001
 import re
+import time
 from pathlib import Path
 
 from src.core.logger import epr
@@ -117,12 +118,11 @@ class UptodownScraper(BaseScraper):
                 return f"https://dw.uptodown.com/dwn/{val}"
         return None
 
-    def _extract_with_playwright(self, url: str) -> str | None:
-        """Fallback: Hooks directly into the browser's download manager targeting the main UI."""
+    def _download_with_playwright(self, url: str, dest: Path) -> bool:
+        """Fallback: Boots a visible browser, solves Turnstile, clicks the button, and hooks the native download stream."""
         try:
             from playwright.sync_api import sync_playwright
             from playwright_stealth import Stealth
-            import time
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(
@@ -131,34 +131,23 @@ class UptodownScraper(BaseScraper):
                 )
                 context = browser.new_context(
                     viewport={"width": 1920, "height": 1080},
-                    user_agent=self.net._get_session().headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                    user_agent=self.net._get_session().headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    accept_downloads=True
                 )
                 Stealth().apply_stealth_sync(context)
                 
+                # Apply current session cookies to bypass CF faster
                 cookies = [{"name": k, "value": v, "domain": ".uptodown.com", "path": "/"} for k, v in self.net._get_session().cookies.get_dict().items()]
                 if cookies:
                     context.add_cookies(cookies)
                     
                 page = context.new_page()
-                found_url = None
+                epr(f"[*] Navigating Playwright to {url}...")
+                page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 
-                def handle_request(request):
-                    nonlocal found_url
-                    if ("/dwn/" in request.url or ".apk" in request.url or ".xapk" in request.url) and ("uptodown.com" in request.url or "uptodown.net" in request.url):
-                        found_url = request.url
-
-                def handle_download(download):
-                    nonlocal found_url
-                    found_url = download.url
-                    download.cancel()
-                        
-                page.on("request", handle_request)
-                page.on("download", handle_download)
-                
-                page.goto(url, wait_until="domcontentloaded", timeout=25000)
-                
+                # Cloudflare Turnstile Bypass
                 start_time = time.time()
-                while time.time() - start_time < 12:
+                while time.time() - start_time < 15:
                     if "Just a moment" not in page.title() and "cf-browser-verification" not in page.content():
                         break
                     try:
@@ -171,36 +160,39 @@ class UptodownScraper(BaseScraper):
                         pass
                     page.wait_for_timeout(1000)
                 
+                # Dismiss Privacy / Cookie Consent
                 try:
-                    page.locator("#purposes-agree").click(timeout=2000)
+                    page.locator("#purposes-agree").click(timeout=3000)
                 except Exception:
                     pass
 
+                # Target the big green button and intercept the file
                 try:
-                    # Look for the big green button!
                     btn = page.locator('#detail-download-button, button.download, .button.download, button:has-text("Download")').first
-                    btn.wait_for(state="visible", timeout=10000)
+                    btn.wait_for(state="visible", timeout=15000)
                     
-                    href = btn.get_attribute("href")
-                    if href and ("/dwn/" in href or "uptodown.net" in href):
-                        found_url = href
-                    else:
-                        btn.click(force=True)
-                        page.wait_for_timeout(1000)
-                        if not found_url:
-                            btn.evaluate("node => node.click()")
+                    epr("[*] Button found. Triggering native download stream...")
+                    with page.expect_download(timeout=90000) as download_info:
+                        # JS evaluation ensures we bypass hidden overlays intercepting the click
+                        btn.evaluate("node => node.click()")
+                        
+                    download = download_info.value
+                    epr(f"[*] Downloading {download.suggested_filename} to disk...")
+                    
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    download.save_as(dest)
+                    
+                    browser.close()
+                    return True
+                    
                 except Exception as e:
-                    epr(f"Playwright btn click failed: {e}")
+                    epr(f"Playwright btn click / download failed: {e}")
                 
-                for _ in range(15):
-                    if found_url: break
-                    page.wait_for_timeout(1000)
-                    
                 browser.close()
-                return found_url
         except Exception as e:
             epr(f"Playwright Uptodown fallback failed: {e}")
-        return None
+            
+        return False
 
     def download(self, url: str, version: str, dest: Path, arch: str, dpi: str) -> DownloadResult:
         apparch: set[str] = set(_DEFAULT_ARCH)
@@ -219,7 +211,6 @@ class UptodownScraper(BaseScraper):
 
         version_url_data = self._find_version_url(url, data_code, version)
         
-        # Build page URL without -x
         v_id = version_url_data.get("versionID")
         if v_id:
             page_url = f"{url}/download/{v_id}"
@@ -231,7 +222,6 @@ class UptodownScraper(BaseScraper):
         try:
             resp = self.net.get(page_url)
         except ResourceNotFoundError:
-            # Fallback to base download page if version specific one throws 404/410
             page_url = f"{url}/download"
             resp = self.net.get(page_url)
             
@@ -244,23 +234,27 @@ class UptodownScraper(BaseScraper):
                 resp = self.net.get(page_url)
                 soup_ver = _parse_html(resp)
             except ResourceNotFoundError:
-                pass # Proceed with previous response if variant fails
-
-        final_url = self._extract_download_link(resp, soup_ver)
-
-        if not final_url:
-            epr(f"DEBUG: Static URL extraction failed. Running Playwright on {page_url}...")
-            final_url = self._extract_with_playwright(page_url)
-
-        if not final_url:
-            Path(f"uptodown_error_{dest.stem}.html").write_text(resp, encoding="utf-8")
-            raise UptodownError("Download URL attribute not found or APK is externally hosted")
-            
-        if "play.google.com" in final_url:
-            raise UptodownError("APK is externally hosted on Google Play")
+                pass 
 
         out_path = dest.with_suffix(".apkm") if is_bundle else dest
-        self.net.download(final_url, out_path)
+        final_url = self._extract_download_link(resp, soup_ver)
+
+        # Path 1: Static URL Extract Success
+        if final_url:
+            if "play.google.com" in final_url:
+                raise UptodownError("APK is externally hosted on Google Play")
+            self.net.download(final_url, out_path)
+            return DownloadResult(path=out_path, is_bundle=is_bundle)
+
+        # Path 2: Fallback to Native Browser Download
+        epr(f"DEBUG: Static URL extraction failed. Running Playwright natively on {page_url}...")
+        
+        success = self._download_with_playwright(page_url, out_path)
+        
+        if not success:
+            Path(f"uptodown_error_{dest.stem}.html").write_text(resp, encoding="utf-8")
+            raise UptodownError("Playwright download hook failed or URL attribute not found")
+            
         return DownloadResult(path=out_path, is_bundle=is_bundle)
 
     def _find_version_url(self, url: str, data_code: str, version: str) -> dict:
@@ -276,6 +270,7 @@ class UptodownScraper(BaseScraper):
                 break
                 
             for entry in data:
+                # Fuzzy match to account for API differences
                 if version.lower() not in str(entry.get("version", "")).lower():
                     continue
                 ver_url_dict = entry.get("versionURL") or {}
@@ -311,7 +306,7 @@ class UptodownScraper(BaseScraper):
 
         for file_id, is_bundle in candidates:
             if not is_bundle:
-                return f"{url}/download/{file_id}", False # -x removed
+                return f"{url}/download/{file_id}", False
 
         file_id, is_bundle = candidates[0]
-        return f"{url}/download/{file_id}", is_bundle # -x removed
+        return f"{url}/download/{file_id}", is_bundle
