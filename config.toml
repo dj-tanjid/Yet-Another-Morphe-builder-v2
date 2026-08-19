@@ -8,6 +8,7 @@ version = "latest" # auto, latest, exp, specific version
 # version = "12.11.0-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.twitter.android"
 # skip-sigcheck = true
 
 [Twitter-Piko.patches]
@@ -23,6 +24,7 @@ version = "latest"
 # version = "12.11.0-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.twitter.android"
 # skip-sigcheck = true
 
 [X-Piko.patches]
