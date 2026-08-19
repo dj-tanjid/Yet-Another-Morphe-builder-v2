@@ -42,7 +42,7 @@ arch = "arm64-v8a"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
 uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 # github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
-github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.android"
+# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.android"
 # patcher-args = "-e 'Theme' -Oamoled=true"
 
 [Instagram-Piko.patches]
