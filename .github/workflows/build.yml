@@ -5,21 +5,20 @@ on:
       patch_source:
         description: 'Select patch source'
         required: true
-        default: 'morphe'
+        default: 'Piko'
         type: choice
         options:
-          - morphe
-          - morphe-dev
-          - piko
-          - hoo-dles
-          - paresh
-          - rushi
-          - de-vanced
-          - anddea
+          - Piko
+          - De-Vanced
+          - Rushi
+          - Paresh
+          - Morphe
+          - Hoo-dles
+          - Anddea
   workflow_call:
     inputs:
       patch_source:
-        default: 'morphe'
+        default: 'Morphe'
         type: string
       filter_changelog:
         default: false
@@ -111,6 +110,13 @@ jobs:
 
       - name: Start API Solver in background
         run: docker run -d -p 8000:8000 ghcr.io/sarperavci/cloudflarebypassforscraping:latest
+        
+      - name: Install Playwright & Xvfb for Cloudflare Bypass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          uv pip install playwright playwright-stealth
+          uv run playwright install --with-deps chromium
 
       - name: Build APKs
         env:
@@ -118,8 +124,8 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
-        run: uv run main.py ${{ matrix.id }} ${{ matrix.arch }}
-
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" uv run main.py ${{ matrix.id }} ${{ matrix.arch }}
+        
       - name: Upload APKs to draft release
         if: always()
         env:
@@ -134,17 +140,23 @@ jobs:
           fi
           gh release upload "$TAG" "${apks[@]}" --clobber --repo "$GITHUB_REPOSITORY"
 
-      - name: Upload build log to draft release
+      - name: Upload logs and debug files
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.prepare.outputs.version }}
           LABEL: ${{ matrix.id }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
         run: |
-          [[ -f build.md ]] || exit 0
-          [[ -s build.md ]] || exit 0
-          cp build.md "build-${LABEL}.md"
-          gh release upload "$TAG" "build-${LABEL}.md" --clobber --repo "$GITHUB_REPOSITORY"
+          # Upload build log
+          if [[ -f build.md ]] && [[ -s build.md ]]; then
+            cp build.md "build-${LABEL}.md"
+            gh release upload "$TAG" "build-${LABEL}.md" --clobber --repo "$GITHUB_REPOSITORY"
+          fi
+          # Upload HTML debug dumps if scraping failed
+          shopt -s nullglob
+          for debug_file in uptodown_error_*.html; do
+            gh release upload "$TAG" "$debug_file" --clobber --repo "$GITHUB_REPOSITORY"
+          done
 
   release:
     needs: [prepare, run]
@@ -197,9 +209,9 @@ jobs:
         run: |
           uv run python -m src.scripts.logs combine-logs logs | sed "s/{TAG}/$TAG/g" > final.md
           if [ "$PRERELEASE" = "true" ]; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --title "$TAG" --notes-file final.md
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --title "Morphe x ${{ inputs.patch_source }} by TanJid R$(date +%y.%m.%d)" --notes-file final.md
           else
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "$TAG" --notes-file final.md
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "Morphe x ${{ inputs.patch_source }} by TanJid R$(date +%y.%m.%d)" --notes-file final.md
           fi
 
       - name: Send Telegram notification
