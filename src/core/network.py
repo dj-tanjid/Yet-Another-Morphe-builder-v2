@@ -30,6 +30,8 @@ _RETRY_DELAYS = (2, 4, 6)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 
 _BROWSERS = (
+    "chrome150",
+    "chrome146",
     "chrome124", 
     "chrome120", 
     "safari17_0", 
@@ -114,7 +116,7 @@ class NetworkManager:
 
     def _get_session(self) -> requests.Session:
         if getattr(self.local, "session", None) is None:
-            browser = "chrome124"
+            browser = "chrome150"
             if self.browser_cfg.exists():
                 try:
                     browser = self.browser_cfg.read_text().strip()
@@ -246,7 +248,7 @@ class NetworkManager:
             except Exception:
                 pass
                 
-            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
+            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome150")]
             self.local.browser = random.choice(available_browsers)
             self.local.session = self._create_session(self.local.browser)
             
