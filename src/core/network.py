@@ -31,6 +31,8 @@ _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
 _SOLVER_URL = os.getenv("CF_SOLVER_URL", "http://localhost:8000")
 
 _BROWSERS = (
+    "chrome150",
+    "chrome146",
     "chrome124", 
     "chrome120", 
     "safari17_0", 
