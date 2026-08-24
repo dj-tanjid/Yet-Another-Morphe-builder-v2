@@ -113,7 +113,7 @@ class NetworkManager:
 
     def _get_session(self):
         if getattr(self.local, "session", None) is None:
-            browser = "chrome124"
+            browser = "chrome150"
             if self.browser_cfg.exists():
                 try: browser = self.browser_cfg.read_text().strip()
                 except: pass
@@ -172,7 +172,7 @@ class NetworkManager:
                     )
                     context = browser.new_context(
                         viewport={"width": 1920, "height": 1080},
-                        user_agent=getattr(self.local, "session", self._create_session("chrome124")).headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                        user_agent=getattr(self.local, "session", self._create_session("chrome150")).headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                     )
                     Stealth().apply_stealth_sync(context)
                     page = context.new_page()
@@ -242,7 +242,7 @@ class NetworkManager:
             except Exception:
                 pass
                 
-            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome124")]
+            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome150")]
             self.local.browser = random.choice(available_browsers)
             self.local.session = self._create_session(self.local.browser)
             
