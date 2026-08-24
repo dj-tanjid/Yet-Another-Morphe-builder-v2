@@ -28,6 +28,7 @@ from src.core.logger import epr
 
 _RETRY_DELAYS = (3, 6, 9)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
+_SOLVER_URL = os.getenv("CF_SOLVER_URL", "http://localhost:8000")
 
 _BROWSERS = (
     "chrome124", 
@@ -52,6 +53,15 @@ def _retry_sleep(attempt: int) -> None:
     if attempt <= len(_RETRY_DELAYS):
         time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(1.0, 3.5))
 
+def _is_challenge(resp) -> bool:
+    if resp.status_code == 403:
+        return True
+
+    if resp.status_code == 503:
+        body = (resp.text or "").lower()
+        return "just a moment" in body or "turnstile" in body or "cf-mitigated" in resp.headers
+    return False
+
 def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code == 404:
         raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
@@ -73,6 +83,7 @@ def _handle_status(resp, url: str, attempt: int) -> bool:
 
 class NetworkManager:
     def __init__(self) -> None:
+        self.session = requests.Session(impersonate="chrome150")
         self.cookie_jar = TEMP_DIR / "cookies.json"
         self.browser_cfg = TEMP_DIR / "browser.txt"
         
@@ -238,6 +249,35 @@ class NetworkManager:
                 self._save_state(self.local.session)
             return success
 
+    def _reset_session(self) -> None:
+        self.session.close()
+        self.session = requests.Session(impersonate="chrome150")
+
+    def _solve_challenge(self, url: str) -> bool:
+        self._reset_session()
+        try:
+            resp = requests.get(f"{_SOLVER_URL}/cookies", params={"url": url}, timeout=60)
+            if resp.status_code != 200:
+                return False
+
+            data = resp.json()
+            cookies = data.get("cookies", {})
+            user_agent = data.get("user_agent")
+            if isinstance(cookies, dict):
+                for k, v in cookies.items():
+                    self.session.cookies.set(k, v)
+            elif isinstance(cookies, list):
+                for c in cookies:
+                    if isinstance(c, dict) and "name" in c and "value" in c:
+                        self.session.cookies.set(c["name"], c["value"])
+
+            if user_agent:
+                self.session.headers["User-Agent"] = user_agent
+            return True
+        except (req_exc.RequestException, Exception) as exc:
+            epr(f"Challenge solver error for {url}: {exc}")
+            return False
+
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
         last_exc: Exception | None = None
@@ -247,6 +287,12 @@ class NetworkManager:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
                     time.sleep(random.uniform(1.0, 2.5))
                     resp = sess.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
+
+                if _is_challenge(resp):
+                    epr(f"JS challenge detected for {url}, attempting solver bypass ({attempt}/{_MAX_ATTEMPTS})")
+                    self._solve_challenge(url)
+                    _retry_sleep(attempt)
+                    continue
 
                 if _handle_status(resp, url, attempt):
                     success = self._rotate_browser(url)
@@ -289,6 +335,12 @@ class NetworkManager:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
                         time.sleep(random.uniform(1.0, 3.0))
                         resp = sess.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
+
+                    if _is_challenge(resp):
+                        epr(f"JS challenge detected for {url}, attempting solver bypass ({attempt}/{_MAX_ATTEMPTS})")
+                        self._solve_challenge(url)
+                        _retry_sleep(attempt)
+                        continue
 
                     if _handle_status(resp, url, attempt):
                         success = self._rotate_browser(url)
