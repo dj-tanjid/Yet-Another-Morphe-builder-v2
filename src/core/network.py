@@ -28,11 +28,9 @@ from src.core.logger import epr
 
 _RETRY_DELAYS = (2, 4, 6)
 _MAX_ATTEMPTS = len(_RETRY_DELAYS) + 1
+_SOLVER_URL = os.getenv("CF_SOLVER_URL", "http://localhost:8000")
 
 _BROWSERS = (
-    "chrome150",
-    "chrome146",
-    "chrome124", 
     "chrome120", 
     "safari17_0", 
     "safari15_5", 
@@ -40,43 +38,38 @@ _BROWSERS = (
     "chrome116"
 )
 
-
 class NetworkError(Exception):
     pass
 
-
 class ResourceNotFoundError(NetworkError):
     pass
-
 
 def _get_lock(locks: dict, mu: threading.Lock, key) -> threading.Lock:
     with mu:
         return locks.setdefault(key, threading.Lock())
 
-
 def _retry_sleep(attempt: int) -> None:
     if attempt <= len(_RETRY_DELAYS):
         time.sleep(_RETRY_DELAYS[attempt - 1] + random.uniform(0.5, 1.5))
 
+def _is_challenge(resp) -> bool:
+    if resp.status_code in (403, 503):
+        body = (resp.text or "").lower()
+        if "just a moment" in body or "cf-browser-verification" in body or "attention required" in body:
+            return True
+    return False
 
 def _handle_status(resp, url: str, attempt: int) -> bool:
     if resp.status_code in (404, 410):
         raise ResourceNotFoundError(f"Not found ({resp.status_code}): {url}")
 
-    is_cf_challenge = False
-    if resp.text:
-        text_lower = resp.text.lower()
-        if "cf-browser-verification" in text_lower or "just a moment" in text_lower or "attention required" in text_lower:
-            is_cf_challenge = True
-
-    if resp.status_code in (401, 403, 429, 503) or resp.status_code >= 500 or is_cf_challenge:
-        epr(f"HTTP {resp.status_code} (CF_Challenge: {is_cf_challenge}) for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
+    if _is_challenge(resp) or resp.status_code in (401, 429) or resp.status_code >= 500:
+        epr(f"HTTP {resp.status_code} for {url}, attempt {attempt}/{_MAX_ATTEMPTS}")
         return True
 
     if resp.status_code >= 400:
         resp.raise_for_status()
     return False
-
 
 class NetworkManager:
     def __init__(self) -> None:
@@ -110,13 +103,14 @@ class NetworkManager:
             "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1"
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1"
         })
         return sess
 
     def _get_session(self) -> requests.Session:
         if getattr(self.local, "session", None) is None:
-            browser = "chrome150"
+            browser = "chrome120"
             if self.browser_cfg.exists():
                 try:
                     browser = self.browser_cfg.read_text().strip()
@@ -156,106 +150,51 @@ class NetworkManager:
             except Exception:
                 pass
 
-    def _bypass_cloudflare_with_playwright(self, url: str, session: requests.Session) -> bool:
-        """Boots Playwright inside Xvfb to solve interactive Cloudflare Turnstile challenges."""
-        try:
-            from playwright.sync_api import sync_playwright
-            from playwright_stealth import Stealth
-        except ImportError:
-            return False
-
+    def _solve_via_docker_service(self, url: str) -> bool:
+        """Attempts fast resolution using the local container solver."""
         with self._cf_lock:
-            epr("Initiating Playwright Stealth bypass...")
             try:
-                with sync_playwright() as p:
-                    browser = p.chromium.launch(
-                        headless=False, 
-                        args=[
-                            "--disable-blink-features=AutomationControlled", 
-                            "--disable-gpu", 
-                            "--no-sandbox",
-                            "--disable-web-security"
-                        ]
-                    )
-                    context = browser.new_context(
-                        viewport={"width": 1920, "height": 1080},
-                        user_agent=self._get_session().headers.get("User-Agent") or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                    )
-                    Stealth().apply_stealth_sync(context)
-                    page = context.new_page()
-                    
-                    try:
-                        page.goto(url, wait_until="domcontentloaded", timeout=15000)
-                    except Exception:
-                        pass 
+                epr(f"Solving Cloudflare challenge for {url} via local API...")
+                resp = requests.get(f"{_SOLVER_URL}/cookies", params={"url": url}, timeout=60)
+                if resp.status_code != 200:
+                    epr(f"Solver API returned HTTP {resp.status_code}")
+                    return False
 
-                    start_time = time.time()
-                    challenge_cleared = False
-                    
-                    while time.time() - start_time < 30: 
-                        content = page.content()
-                        title = page.title()
-                        
-                        if "Just a moment" not in title and "cf-browser-verification" not in content and "Attention Required" not in title:
-                            epr("Cloudflare challenge cleared.")
-                            challenge_cleared = True
-                            break
-                            
-                        try:
-                            for frame in page.frames:
-                                if "challenges.cloudflare.com" in frame.url:
-                                    box = frame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage').first
-                                    if box.is_visible():
-                                        box_box = box.bounding_box()
-                                        if box_box:
-                                            x = box_box["x"] + box_box["width"] / 2
-                                            y = box_box["y"] + box_box["height"] / 2
-                                            page.mouse.move(x, y)
-                                            page.wait_for_timeout(random.randint(100, 200))
-                                            page.mouse.down()
-                                            page.wait_for_timeout(random.randint(50, 100))
-                                            page.mouse.up()
-                                        box.click(force=True)
-                        except Exception:
-                            pass
-                        
-                        page.wait_for_timeout(1000)
-                        
-                    if not challenge_cleared:
-                        epr("Playwright timeout exceeded, moving on.")
-                        browser.close()
-                        return False
-                    
-                    for c in context.cookies():
-                        session.cookies.set(c["name"], c["value"], domain=c["domain"])
-                    
-                    ua = page.evaluate("navigator.userAgent")
-                    session.headers.update({"User-Agent": ua})
-                    
-                    browser.close()
-                    self._save_state(session)
-                    return True
-            except Exception as e:
-                epr(f"Playwright bypass failed or timed out: {e}")
-                return False
+                data = resp.json()
+                cookies = data.get("cookies", {})
+                user_agent = data.get("user_agent")
 
-    def _rotate_browser(self, url: str) -> bool:
-        """Rotates browser fingerprints when rate-limited or blocked."""
-        with self._cf_lock:
-            self._clear_state()
-            try:
-                self.local.session.close()
-            except Exception:
-                pass
+                if not cookies or not user_agent:
+                    epr("Solver API returned invalid payload")
+                    return False
+
+                self._clear_state()
+                try:
+                    self.local.session.close()
+                except Exception:
+                    pass
+
+                # Force Chrome 120 matching the solver
+                self.local.browser = "chrome120"
+                sess = self._create_session("chrome120")
                 
-            available_browsers = [b for b in _BROWSERS if b != getattr(self.local, "browser", "chrome150")]
-            self.local.browser = random.choice(available_browsers)
-            self.local.session = self._create_session(self.local.browser)
-            
-            success = self._bypass_cloudflare_with_playwright(url, self.local.session)
-            if success:
-                self._save_state(self.local.session)
-            return success
+                if isinstance(cookies, dict):
+                    for k, v in cookies.items():
+                        sess.cookies.set(k, v)
+                elif isinstance(cookies, list):
+                    for c in cookies:
+                        if isinstance(c, dict) and "name" in c and "value" in c:
+                            sess.cookies.set(c["name"], c["value"])
+
+                sess.headers["User-Agent"] = user_agent
+                
+                self.local.session = sess
+                self._save_state(sess)
+                epr("Cloudflare bypass cookies synchronized successfully.")
+                return True
+            except Exception as exc:
+                epr(f"Container solver failed: {exc}")
+                return False
 
     def get(self, url: str, headers: dict[str, str] | None = None) -> str:
         netloc = urlparse(url).netloc
@@ -265,12 +204,14 @@ class NetworkManager:
             try:
                 with _get_lock(self._domain_locks, self._domain_mu, netloc):
                     time.sleep(random.uniform(0.5, 1.5))
-                    resp = sess.get(url, timeout=(10, 25), allow_redirects=True, headers=headers, verify=True)
+                    resp = sess.get(url, timeout=(15, 45), allow_redirects=True, headers=headers, verify=True)
+
+                if _is_challenge(resp):
+                    self._solve_via_docker_service(url)
+                    _retry_sleep(attempt)
+                    continue
 
                 if _handle_status(resp, url, attempt):
-                    success = self._rotate_browser(url)
-                    if not success and attempt >= 3:
-                        raise NetworkError(f"Cloudflare challenge unresolved for {url}. Aborting retries.")
                     _retry_sleep(attempt)
                     self._load_state(self.local.session)
                     continue
@@ -282,9 +223,6 @@ class NetworkManager:
             except req_exc.RequestException as exc:
                 last_exc = exc
                 epr(f"Request error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
-                success = self._rotate_browser(url)
-                if not success and attempt >= 3:
-                    raise NetworkError(f"Connection failed for {url}. Aborting retries.")
                 _retry_sleep(attempt)
                 self._load_state(self.local.session)
         raise NetworkError(f"Request failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
@@ -308,12 +246,14 @@ class NetworkManager:
                 try:
                     with _get_lock(self._domain_locks, self._domain_mu, netloc):
                         time.sleep(random.uniform(0.5, 2.0))
-                        resp = sess.get(url, timeout=(10, 300), stream=True, allow_redirects=True, headers=headers, verify=True)
+                        resp = sess.get(url, timeout=(15, 120), stream=True, allow_redirects=True, headers=headers, verify=True)
+
+                    if _is_challenge(resp):
+                        self._solve_via_docker_service(url)
+                        _retry_sleep(attempt)
+                        continue
 
                     if _handle_status(resp, url, attempt):
-                        success = self._rotate_browser(url)
-                        if not success and attempt >= 3:
-                            raise NetworkError(f"Cloudflare challenge unresolved for {url}. Aborting retries.")
                         _retry_sleep(attempt)
                         self._load_state(self.local.session)
                         continue
@@ -331,9 +271,6 @@ class NetworkManager:
                     tmp.unlink(missing_ok=True)
                     last_exc = exc
                     epr(f"Download error for {url}, attempt {attempt}/{_MAX_ATTEMPTS}: {exc}")
-                    success = self._rotate_browser(url)
-                    if not success and attempt >= 3:
-                        raise NetworkError(f"Download connection failed for {url}. Aborting retries.")
                     _retry_sleep(attempt)
                     self._load_state(self.local.session)
             raise NetworkError(f"Download failed after {_MAX_ATTEMPTS} attempts: {url}") from last_exc
