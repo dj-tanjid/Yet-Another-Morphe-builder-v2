@@ -92,6 +92,13 @@ jobs:
           fetch-depth: 0
           submodules: true
 
+      # --- NEW WIREGUARD WARP INTEGRATION ---
+      - name: Set up WireGuard Connection (Cloudflare WARP)
+        uses: niklaskeerl/easy-wireguard-action@v2
+        with:
+          WG_CONFIG_FILE: ${{ secrets.WG_CONFIG_FILE }}
+      # --------------------------------------
+
       - name: Install java
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961  # v5.7.0
         with:
@@ -108,9 +115,6 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Start API Solver in background
-        run: docker run -d -p 8000:8000 ghcr.io/sarperavci/cloudflarebypassforscraping:latest
-        
       - name: Install Playwright & Xvfb for Cloudflare Bypass
         run: |
           sudo apt-get update
