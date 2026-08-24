@@ -7,7 +7,7 @@ brand = "Piko"
 version = "latest" # auto, latest, exp, specific version
 # version = "12.11.0-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
-uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+# uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.twitter.android"
 # skip-sigcheck = true
 
@@ -23,7 +23,7 @@ brand = "Piko"
 version = "latest"
 # version = "12.11.0-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
-uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+# uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.twitter.android"
 # skip-sigcheck = true
 
@@ -40,9 +40,9 @@ version = "latest"
 # version = "439.0.0.37.89"
 arch = "arm64-v8a"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
-uptodown-dlurl = "https://instagram.en.uptodown.com/android"
+# uptodown-dlurl = "https://instagram.en.uptodown.com/android"
 # github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
-# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.android"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.android"
 # patcher-args = "-e 'Theme' -Oamoled=true"
 
 [Instagram-Piko.patches]
@@ -57,7 +57,7 @@ brand = "De-Vanced"
 # version = "latest"
 version = "490.0.0.63.82"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
-# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.katana"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.katana"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
 uptodown-dlurl = "https://facebook.en.uptodown.com/android"
 arch = "arm64-v8a"
@@ -73,9 +73,9 @@ brand = "De-Vanced"
 version = "latest"
 # version = "573.0.0.44.88"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
-# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.orca"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.orca"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger"
-uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+# uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
 arch = "arm64-v8a"
 patcher-args = "--continue-on-error"
 
@@ -89,9 +89,9 @@ brand = "De-Vanced"
 version = "latest"
 # version = "441.0.0.44.81"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.instagram.barcelona"
-# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.barcelona"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.barcelona"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/threads-an-instagram-app"
-uptodown-dlurl = "https://threads.en.uptodown.com/android"
+# uptodown-dlurl = "https://threads.en.uptodown.com/android"
 arch = "arm64-v8a"
 patcher-args = "--continue-on-error"
 
@@ -107,7 +107,7 @@ version = "latest"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
 github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.katana"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
-uptodown-dlurl = "https://facebook.en.uptodown.com/android"
+# uptodown-dlurl = "https://facebook.en.uptodown.com/android"
 arch = "arm64-v8a"
 patcher-args = "--continue-on-error"
 
@@ -124,7 +124,7 @@ version = "latest"
 # github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
 github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.orca"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger"
-uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+# uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
 arch = "arm64-v8a"
 patcher-args = "--continue-on-error"
 
@@ -163,7 +163,7 @@ app-name = "Proton VPN"
 brand = "Rushi"
 # version = "5.19.16.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn"
-uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
+# uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
 changelog-keywords = ["Proton VPN"]
 
 [Proton-VPN-Rushi.patches]
@@ -175,7 +175,7 @@ enabled = true
 app-name = "Windscribe VPN"
 brand = "Rushi"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/windscribe/windscribe-vpn"
-uptodown-dlurl = "https://windscribe.en.uptodown.com/android"
+# uptodown-dlurl = "https://windscribe.en.uptodown.com/android"
 changelog-keywords = ["Windscribe"]
 
 [Windscribe-VPN.patches]
@@ -187,7 +187,7 @@ enabled = true
 app-name = "Psiphon VPN"
 brand = "Rushi"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/psiphon-inc/psiphon-pro-the-internet-freedom-vpn"
-uptodown-dlurl = "https://psiphon-pro.en.uptodown.com/android"
+# uptodown-dlurl = "https://psiphon-pro.en.uptodown.com/android"
 changelog-keywords = ["Psiphon"]
 
 [Psiphon-VPN.patches]
@@ -200,7 +200,7 @@ app-name = "TeraBox"
 brand = "Rushi"
 # version = "4.22.6"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/flextech-inc/terabox-cloud-storage-cloud-backup-data-backup"
-uptodown-dlurl = "https://terabox.en.uptodown.com/android"
+# uptodown-dlurl = "https://terabox.en.uptodown.com/android"
 changelog-keywords = ["TeraBox"]
 
 [TeraBox.patches]
@@ -212,7 +212,7 @@ enabled = true
 app-name = "CPU-Z"
 brand = "Rushi"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/cpuid/cpu-z"
-uptodown-dlurl = "https://cpu-z.en.uptodown.com/android"
+# uptodown-dlurl = "https://cpu-z.en.uptodown.com/android"
 changelog-keywords = ["CPU"]
 
 [CPU-Z.patches]
@@ -224,7 +224,7 @@ enabled = true
 app-name = "NetGuard"
 brand = "Rushi"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/marcel-bokhorst/netguard-no-root-firewall"
-uptodown-dlurl = "https://netguard.en.uptodown.com/android"
+# uptodown-dlurl = "https://netguard.en.uptodown.com/android"
 changelog-keywords = ["NetGuard"]
 
 [NetGuard.patches]
@@ -236,7 +236,7 @@ enabled = true
 app-name = "Speedtest by Ookla"
 brand = "Rushi"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/ookla/speedtest"
-uptodown-dlurl = "https://speedtest-net-mobile.en.uptodown.com/android"
+# uptodown-dlurl = "https://speedtest-net-mobile.en.uptodown.com/android"
 arch = "both"
 changelog-keywords = ["Speedtest"]
 
@@ -261,7 +261,7 @@ app-name = "Waze"
 brand = "Rushi"
 arch = "arm64-v8a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
 apkmirror-dlurl = "https://www.apkmirror.com/apk/waze/waze-gps-maps-traffic-alerts-live-navigation"
-uptodown-dlurl = "https://waze.en.uptodown.com/android"
+# uptodown-dlurl = "https://waze.en.uptodown.com/android"
 changelog-keywords = ["Waze"]
 
 [Waze.patches]
@@ -276,7 +276,7 @@ arch = "arm64-v8a" # Options 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64', or 'un
 # version = "auto"
 version = "latest"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/photos"
-uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
+# uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
 
 [Google-Photos.patches]
 "github:rushiranpise/morphe-patches" = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction", "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] #Fetch Latest Stable Patch
@@ -290,7 +290,7 @@ brand = "Paresh"
 version = "5.19.16.0"
 github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/ch.protonvpn.android"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn"
-uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
+# uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
 skip-sigcheck = true
 changelog-keywords = ["Proton VPN"]
 patcher-args = "--continue-on-error"
