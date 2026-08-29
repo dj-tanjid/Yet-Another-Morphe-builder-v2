@@ -2,235 +2,301 @@
 
 strict-sigcheck = false
 
-[YouTube]
+[Twitter-Piko]
 enabled = true
-apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
-
-[YouTube.patches]
-"github:MorpheApp/morphe-patches" = []
-
-[YT-Music]
-enabled = true
-apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
-arch = "both"
-
-[YT-Music.patches]
-"github:MorpheApp/morphe-patches" = []
-
-[Reddit]
-enabled = true
-apkmirror-dlurl = "https://www.apkmirror.com/apk/redditinc/reddit"
-
-[Reddit.patches]
-"github:MorpheApp/morphe-patches" = []
-
-[YouTube-Experimental]
-enabled = false
-brand = "morphe-dev"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
-version = "exp"
-patcher-args = "-e 'Change header' -Ocustom=icons/YouTube/header -e 'Custom branding' -OcustomIcon=icons/YouTube/branding -OcustomName='YouTube Morphe'"
-
-[YouTube-Experimental.patches]
-"github:MorpheApp/morphe-patches" = { version = "dev" }
-
-[YT-Music-Experimental]
-enabled = false
-brand = "morphe-dev"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
-arch = "both"
-version = "exp"
-patcher-args = "-e 'Change header' -Ocustom=icons/Music/header -e 'Custom branding' -OcustomIcon=icons/Music/branding -OcustomName='Music Morphe'"
-
-[YT-Music-Experimental.patches]
-"github:MorpheApp/morphe-patches" = { version = "dev" }
-
-[Reddit-Experimental]
-enabled = false
-brand = "morphe-dev"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/redditinc/reddit"
-version = "exp"
-patcher-args = "-e 'Custom branding name for Reddit' -OappName='Reddit Morphe'"
-
-[Reddit-Experimental.patches]
-"github:MorpheApp/morphe-patches" = { version = "dev" }
-
-[X-Twitter]
-enabled = true
-brand = "piko"
+app-name = "Twitter"
+brand = "Piko"
+version = "latest" # auto, latest, exp, specific version
+# version = "12.11.0-release.0"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
+# uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.twitter.android"
+# skip-sigcheck = true
 
-[X-Twitter.patches]
-"github:crimera/piko" = ["Browse tweet object", "Dynamic color"]
+[Twitter-Piko.patches]
+# "github:crimera/piko" = ["Bring back twitter", "Browse tweet object", "Dynamic color"] # Fetch Latest Stable Patch
+"github:crimera/piko" = { version = "dev", include = ["Bring back twitter", "Browse tweet object", "Dynamic color"] } # Fetch Latest Dev Patch
+# "gitlab:inotia00/x-shim" = []
 
-[Instagram]
+[X-Piko]
 enabled = true
-brand = "piko"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
-arch = "arm64-v8a"
-patcher-args = "-e 'Theme' -Oamoled=true"
+app-name = "X"
+brand = "Piko"
+version = "latest"
+# version = "12.11.0-release.0"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
+# uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.twitter.android"
+# skip-sigcheck = true
 
-[Instagram.patches]
-"github:crimera/piko" = []
+[X-Piko.patches]
+# "github:crimera/piko" = ["Browse tweet object", "Dynamic color"] # Fetch Latest Stable Patch
+"github:crimera/piko" = { version = "dev", include = ["Browse tweet object", "Dynamic color"] } # Fetch Latest Dev Patch
+# "gitlab:inotia00/x-shim" = []
+
+[Instagram-Piko]
+enabled = true
+app-name = "Instagram"
+brand = "Piko"
+version = "latest"
+# version = "439.0.0.37.89"
+arch = "arm64-v8a"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/instagram-instagram"
+# uptodown-dlurl = "https://instagram.en.uptodown.com/android"
+# github-dlurl = "https://github.com/krvstek/uni-storage/releases/tag/instagram"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.android"
+# patcher-args = "-e 'Theme' -Oamoled=true"
+
+[Instagram-Piko.patches]
+# "github:crimera/piko" = { include = ["Theme"], exclude = ["Unlock Plus benefits"] } #Fetch Latest Stable Patch
+"github:crimera/piko" = { version = "dev", include = ["Theme"], exclude = ["Unlock Plus benefits"] } # Fetch Latest Dev Patch
+
+
+[Facebook-De-Vanced]
+enabled = true
+app-name = "Facebook"
+brand = "De-Vanced"
+# version = "latest"
+version = "490.0.0.63.82"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
+# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.katana"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
+uptodown-dlurl = "https://facebook.en.uptodown.com/android"
+arch = "arm64-v8a"
+patcher-args = "--continue-on-error"
+
+[Facebook-De-Vanced.patches]
+"github:RookieEnough/De-Vanced" = []
+
+[Messenger-De-Vanced]
+enabled = true
+app-name = "Facebook Messenger"
+brand = "De-Vanced"
+version = "latest"
+# version = "573.0.0.44.88"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
+# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.orca"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger"
+# uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+arch = "arm64-v8a"
+patcher-args = "--continue-on-error"
+
+[Messenger-De-Vanced.patches]
+"github:RookieEnough/De-Vanced" = []
+
+[Threads-De-Vanced]
+enabled = true
+app-name = "Threads"
+brand = "De-Vanced"
+version = "latest"
+# version = "441.0.0.44.81"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.instagram.barcelona"
+# github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.instagram.barcelona"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/instagram/threads-an-instagram-app"
+# uptodown-dlurl = "https://threads.en.uptodown.com/android"
+arch = "arm64-v8a"
+patcher-args = "--continue-on-error"
+
+[Threads-De-Vanced.patches]
+"github:RookieEnough/De-Vanced" = []
+
+
+[Facebook-Rushi]
+enabled = true
+app-name = "Facebook"
+brand = "Rushi"
+version = "latest"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.katana"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.katana"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/facebook"
+# uptodown-dlurl = "https://facebook.en.uptodown.com/android"
+arch = "arm64-v8a"
+patcher-args = "--continue-on-error"
+
+[Facebook-Rushi.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Messenger-Rushi]
+enabled = true
+app-name = "Facebook Messenger"
+brand = "Rushi"
+version = "latest"
+# version = "573.0.0.44.88"
+# github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/com.facebook.orca"
+github-dlurl = "https://github.com/dj-tanjid/AppRepo/releases/tag/com.facebook.orca"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger"
+# uptodown-dlurl = "https://facebook-messenger.en.uptodown.com/android"
+arch = "arm64-v8a"
+patcher-args = "--continue-on-error"
+
+[Messenger-Rushi.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+["1.1.1.1"]
+enabled = true
+app-name = "1.1.1.1"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/cloudflare/1-1-1-1-faster-safer-internet"
+uptodown-dlurl = "https://1-1-1-1.en.uptodown.com/android"
+changelog-keywords = ["1.1.1"]
+
+["1.1.1.1".patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Hola-VPN-64bit]
+enabled = true
+app-name = "Hola VPN 64bit"
+brand = "Rushi"
+version = "AARCH64_1.248.400"
+uptodown-dlurl = "https://holavpn.en.uptodown.com/android"
+arch = "arm64-v8a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
+changelog-keywords = ["Hola VPN"]
+
+[Hola-VPN-64bit.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Proton-VPN-Rushi]
+enabled = true
+app-name = "Proton VPN"
+brand = "Rushi"
+# version = "5.19.16.0"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn"
+# uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
+changelog-keywords = ["Proton VPN"]
+
+[Proton-VPN-Rushi.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Windscribe-VPN]
+enabled = true
+app-name = "Windscribe VPN"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/windscribe/windscribe-vpn"
+# uptodown-dlurl = "https://windscribe.en.uptodown.com/android"
+changelog-keywords = ["Windscribe"]
+
+[Windscribe-VPN.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Psiphon-VPN]
+enabled = true
+app-name = "Psiphon VPN"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/psiphon-inc/psiphon-pro-the-internet-freedom-vpn"
+# uptodown-dlurl = "https://psiphon-pro.en.uptodown.com/android"
+changelog-keywords = ["Psiphon"]
+
+[Psiphon-VPN.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[TeraBox]
+enabled = true
+app-name = "TeraBox"
+brand = "Rushi"
+# version = "4.22.6"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/flextech-inc/terabox-cloud-storage-cloud-backup-data-backup"
+# uptodown-dlurl = "https://terabox.en.uptodown.com/android"
+changelog-keywords = ["TeraBox"]
+
+[TeraBox.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[CPU-Z]
+enabled = true
+app-name = "CPU-Z"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/cpuid/cpu-z"
+# uptodown-dlurl = "https://cpu-z.en.uptodown.com/android"
+changelog-keywords = ["CPU"]
+
+[CPU-Z.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[NetGuard]
+enabled = true
+app-name = "NetGuard"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/marcel-bokhorst/netguard-no-root-firewall"
+# uptodown-dlurl = "https://netguard.en.uptodown.com/android"
+changelog-keywords = ["NetGuard"]
+
+[NetGuard.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Speedtest-by-Ookla]
+enabled = true
+app-name = "Speedtest by Ookla"
+brand = "Rushi"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/ookla/speedtest"
+# uptodown-dlurl = "https://speedtest-net-mobile.en.uptodown.com/android"
+arch = "both"
+changelog-keywords = ["Speedtest"]
+
+[Speedtest-by-Ookla.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Universal-TV-Remote-Control]
+enabled = true
+app-name = "Universal TV Remote Control"
+brand = "Rushi"
+uptodown-dlurl = "https://unimote.en.uptodown.com/android"
+changelog-keywords = ["TV", "Remote"]
+
+[Universal-TV-Remote-Control.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+
+[Waze]
+enabled = true
+app-name = "Waze"
+brand = "Rushi"
+arch = "arm64-v8a" # Options all, both, arm64-v8a, armeabi-v7a, x86_64, x86
+apkmirror-dlurl = "https://www.apkmirror.com/apk/waze/waze-gps-maps-traffic-alerts-live-navigation"
+# uptodown-dlurl = "https://waze.en.uptodown.com/android"
+changelog-keywords = ["Waze"]
+
+[Waze.patches]
+"github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Google-Photos]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/photos/"
-changelog-keywords = ["Photos"]
+enabled = true
+app-name = "Google Photos"
+brand = "Rushi"
+arch = "arm64-v8a" # Options 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64', or 'universal'
+# version = "auto"
+version = "latest"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/photos"
+# uptodown-dlurl = "https://google-photos.en.uptodown.com/android"
 
 [Google-Photos.patches]
-"github:rushiranpise/morphe-patches" = []
+"github:rushiranpise/morphe-patches" = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction", "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] #Fetch Latest Stable Patch
+# "github:rushiranpise/morphe-patches" = { version = "dev", include = ["Enable DCIM folders backup control", "Remove screenshot restriction", "Remove screen capture restriction", "Spoof Pixel device", "Fix DCIM folder classification", "GmsCore support", "Spoof features"] } # Fetch Latest Dev Patch
 
-[Messenger]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-technologies-llc/messenger/"
-arch = "both"
-changelog-keywords = ["Messenger"]
 
-[Messenger.patches]
-"github:rushiranpise/morphe-patches" = []
+[Proton-VPN-Paresh]
+enabled = true
+app-name = "Proton VPN"
+brand = "Paresh"
+version = "5.19.16.0"
+github-dlurl = "https://github.com/nvbangg/builder-for-morphe/releases/tag/ch.protonvpn.android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn"
+# uptodown-dlurl = "https://protonvpn.en.uptodown.com/android"
+skip-sigcheck = true
+changelog-keywords = ["Proton VPN"]
+patcher-args = "--continue-on-error"
 
-[Amazon-Shopping]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/amazon-mobile-llc/amazon-shopping/"
-changelog-keywords = ["Amazon"]
-
-[Amazon-Shopping.patches]
-"github:rushiranpise/morphe-patches" = []
-
-[Block-Blast]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/hungrystudio/block-blast-puzzle-games/"
-changelog-keywords = ["Block Blast"]
-
-[Block-Blast.patches]
-"github:rushiranpise/morphe-patches" = []
-
-[Telegram]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/telegram-fz-llc/telegram-web-version/"
-changelog-keywords = ["Telegram"]
-
-[Telegram.patches]
-"github:rushiranpise/morphe-patches" = []
-
-[Duolingo]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/duolingo/duolingo-duolingo/"
-changelog-keywords = ["Duolingo"]
-
-[Duolingo.patches]
-"github:rushiranpise/morphe-patches" = []
-
-[Adobe-Acrobat] 
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/adobe/adobe-acrobat/"
-changelog-keywords = ["Acrobat"]
-
-[Adobe-Acrobat.patches]
-"github:rushiranpise/morphe-patches" = []
-
-[Proton-VPN]
-enabled = false
-brand = "rushi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/"
-changelog-keywords = ["Proton"]
-
-[Proton-VPN.patches]
-"github:rushiranpise/morphe-patches" = []
-
-[Prime-Video]
-enabled = false
-brand = "hoo-dles"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/amazon-mobile-llc/amazon-prime-video/"
-arch = "arm64-v8a"
-changelog-keywords = ["Prime Video"]
-
-[Prime-Video.patches]
-"github:hoo-dles/morphe-patches" = []
-
-[WPS-Office]
-enabled = false
-brand = "hoo-dles"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/wps-software-pte-ltd/wps-office-pdf/"
-changelog-keywords = ["WPS"]
-
-[WPS-Office.patches]
-"github:hoo-dles/morphe-patches" = []
-
-[CamScanner]
-enabled = false
-brand = "hoo-dles"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/intsig-information-co-ltd/camscanner-phone-pdf-creator/"
-changelog-keywords = ["CamScanner"]
-
-[CamScanner.patches]
-"github:hoo-dles/morphe-patches" = []
-
-[InShot]
-enabled = false
-brand = "hooman"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/inshot-inc/inshot-video-editor-photo-editor/"
-changelog-keywords = ["InShot"]
-
-[InShot.patches]
-"github:arandomhooman/hoomans-morphe-patches" = []
-
-[Twitch]
-enabled = false
-brand = "hooman"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/twitch-interactive-inc/twitch/"
-changelog-keywords = ["Twitch"]
-
-[Twitch.patches]
-"github:arandomhooman/hoomans-morphe-patches" = []
-
-[Truecaller]
-enabled = false
-brand = "paresh"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/true-software-scandinavia-ab/truecaller-caller-id-block/"
-changelog-keywords = ["Truecaller"]
-
-[Truecaller.patches]
-"gitlab:Paresh-Maheshwari/paresh-patches" = []
-
-[JioHotstar]
-enabled = false
-brand = "paresh"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/jiostar-india-private-limited/jiohotstar-4/"
-changelog-keywords = ["JioHotstar"]
-
-[JioHotstar.patches]
-"gitlab:Paresh-Maheshwari/paresh-patches" = []
-
-[Facebook]
-enabled = false
-brand = "de-vanced"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/facebook-2/facebook/"
-arch = "both"
-
-[Facebook.patches]
-"github:RookieEnough/De-Vanced" = []
-
-[Viber]
-enabled = false
-brand = "de-vanced"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/viber-media-s-a-r-l/viber/"
-
-[Viber.patches]
-"github:RookieEnough/De-Vanced" = []
-
-[TikTok]
-enabled = false
-brand = "tiktok"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly/"
-
-[TikTok.patches]
-"github:icysymmetra/tiktok-patches-for-morphe" = []
+[Proton-VPN-Paresh.patches]
+# "gitlab:Paresh-Maheshwari/paresh-patches" = [] # Fetch Latest Stable Patch
+"gitlab:Paresh-Maheshwari/paresh-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch

@@ -1,6 +1,7 @@
 # ---------------------------------------------------------
 # Copyright (C) 2026 krvstek (Original Author)
 # Copyright (C) 2026 The uni-apks Contributors (Modifications)
+# Copyright (C) 2026 TanJid Creations (Modifications)
 # 
 # DO NOT REMOVE OR ALTER THIS COPYRIGHT HEADER.
 # This file is part of uni-apks.
@@ -96,6 +97,7 @@ class APKMirrorScraper(BaseScraper):
             apparch.add(arch)
 
         rows = soup.select("div.table-row.headerFont")
+        # Explicitly check for standard APKs first; fall back to BUNDLE only if no standalone APK matches
         for bundle_type in ("APK", "BUNDLE"):
             for row in reversed(rows):
                 cells = row.select("div.table-cell")
@@ -128,3 +130,4 @@ class APKMirrorScraper(BaseScraper):
                 if b_type == bundle_type and arch_text in apparch and dpi_ok:
                     return urljoin("https://www.apkmirror.com", str(link["href"])), bundle_type
         return None
+        

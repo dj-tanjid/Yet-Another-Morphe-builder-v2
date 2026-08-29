@@ -1,9 +1,14 @@
-## [nvbangg/builder-for-morphe](https://github.com/nvbangg/builder-for-morphe)
+## [Yet Another Morphe Builder by TanJid Creations](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2)
 
 <div align="center">
+  
+[![GitHub License](https://img.shields.io/github/license/dj-tanjid/Yet-Another-Morphe-builder-v2?logo=github&label=License&link=https%3A%2F%2Fgithub.com%2Fdj-tanjid%2FMorphe-DeVanced-Builder%2Fblob%2Fmain%2FLICENSE)](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/blob/main/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/dj-tanjid/Yet-Another-Morphe-builder-v2?label=Latest%20Release&logo=android)](../../releases/)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/dj-tanjid/Yet-Another-Morphe-builder-v2/total?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ij48cGF0aCBkPSJNNC43NSAxNy4yNWEuNzUuNzUgMCAwIDEgLjc1Ljc1djIuMjVjMCAuMTM4LjExMi4yNS4yNS4yNWgxMi41YS4yNS4yNSAwIDAgMCAuMjUtLjI1VjE4YS43NS43NSAwIDAgMSAxLjUgMHYyLjI1QTEuNzUgMS43NSAwIDAgMSAxOC4yNSAyMkg1Ljc1QTEuNzUgMS43NSAwIDAgMSA0IDIwLjI1VjE4YS43NS43NSAwIDAgMSAuNzUtLjc1WiIgZmlsbD0iI0ZGRkZGRiI+PC9wYXRoPjxwYXRoIGQ9Ik01LjIyIDkuOTdhLjc0OS43NDkgMCAwIDEgMS4wNiAwbDQuOTcgNC45NjlWMi43NWEuNzUuNzUgMCAwIDEgMS41IDB2MTIuMTg5bDQuOTctNC45NjlhLjc0OS43NDkgMCAxIDEgMS4wNiAxLjA2bC02LjI1IDYuMjVhLjc0OS43NDkgMCAwIDEtMS4wNiAwbC02LjI1LTYuMjVhLjc0OS43NDkgMCAwIDEgMC0xLjA2WiIgZmlsbD0iI0ZGRkZGRiI+PC9wYXRoPjwvc3ZnPg==&label=Downloads&link=https%3A%2F%2Fgithub.com%2Fdj-tanjid%2FYet-Another-Morphe-builder-v2%2Freleases)](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/releases)
 
-[![Typing SVG](https://readme-typing-svg.demolab.com/?font=Google+Sans&size=25&duration=3000&pause=2000&color=&center=true&vCenter=true&random=false&width=550&lines=%F0%9F%93%A6+Build+APKs+from+Morphe+patch+sources)](#-build-your-own-apks)<br>
-You can use [this repository](https://github.com/nvbangg/builder-for-morphe) to automatically build patched APKs from [Morphe](https://morphe.software) patch sources on every new update.
+[![Typing SVG](https://readme-typing-svg.demolab.com/?font=Google+Sans&size=25&duration=3000&pause=2000&color=&center=true&vCenter=true&random=false&width=550&lines=%F0%9F%93%A6+Build+APKs+from+Morphe+patch+sources)](#-build-your-own-apks)
+
+You can use [this repository](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2) to automatically get patched APKs from [Morphe](https://morphe.software) patch sources on every new update.
 
 </div>
 
@@ -79,8 +84,9 @@ Maintained with ❤️ by **[@nvbangg](https://github.com/nvbangg)** (syncing up
 
 This project is open-source and distributed under the **[GNU GPLv3](LICENSE)** license. You are free to use, modify, and redistribute this software, but you **must** keep all original and new copyright notices intact.
 
-> **Copyright (C) 2026 [nvbangg](https://github.com/nvbangg)** (for all [modifications](https://github.com/nvbangg/builder-for-morphe/commits/main/?author=nvbangg) by nvbangg in [builder-for-morphe](https://github.com/nvbangg/builder-for-morphe), and those in [contributions](https://github.com/krvstek/uni-apks/commits/main/?author=nvbangg) and [co-authored commits](https://github.com/search?q=repo%3Akrvstek%2Funi-apks+Co-authored-by%3A+nvbangg&type=commits))  
-> **Copyright (C) 2026 [krvstek](https://github.com/krvstek)** (for the original [uni-apks](https://github.com/krvstek/uni-apks) codebase)  
+> **Copyright (C) 2026 [TanJid Creations](https://github.com/dj-tanjid)** (for all [customizations](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/commits/main/?author=dj-tanjid) by TanJid Creations in [builder-for-morphe](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2)) </br>
+> **Copyright (C) 2026 [nvbangg](https://github.com/nvbangg)** (for all [modifications](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2/commits/main/?author=nvbangg) by nvbangg in [builder-for-morphe](https://github.com/nvbangg/builder-for-morphe), and those in [contributions](https://github.com/krvstek/uni-apks/commits/main/?author=nvbangg) and [co-authored commits](https://github.com/search?q=repo%3Akrvstek%2Funi-apks+Co-authored-by%3A+nvbangg&type=commits))  </br>
+> **Copyright (C) 2026 [krvstek](https://github.com/krvstek)** (for the original [uni-apks](https://github.com/krvstek/uni-apks) codebase)  </br>
 > **Authors:** See the list of [Contributors](https://github.com/nvbangg/builder-for-morphe/graphs/contributors) for their source code contributions, and see [icons/README.md](icons/README.md) for asset sources.
 
 </details>
@@ -88,7 +94,7 @@ This project is open-source and distributed under the **[GNU GPLv3](LICENSE)** l
 <details>
 <summary><h3>⚠️ Disclaimer</h3></summary>
 
-- [This project](https://github.com/nvbangg/builder-for-morphe) is not affiliated with [Morphe](https://morphe.software/) or any authors mentioned here.
+- [This project](https://github.com/dj-tanjid/Yet-Another-Morphe-builder-v2) is not affiliated with [Morphe](https://morphe.software/) or any authors mentioned here.
 - This project is intended for educational and research purposes only, and is not responsible for any issues arising from its use.
 - This repository does not provide pre-patched APKs; it is only a tool to conveniently use publicly available patch bundles via GitHub Actions to ensure security and transparency.
 </details>
