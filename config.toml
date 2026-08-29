@@ -255,7 +255,7 @@ changelog-keywords = ["TV", "Remote"]
 
 [Universal-TV-Remote-Control.patches]
 # "github:rushiranpise/morphe-patches" = [] #Fetch Latest Stable Patch
-#l"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
+"github:rushiranpise/morphe-patches" = { version = "dev", include = [] } # Fetch Latest Dev Patch
 
 [Waze]
 enabled = true
